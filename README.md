@@ -59,8 +59,14 @@ animation only helps if you happened to be looking at that pixel when it fired:
 
 - **The moment** — fires once, over about 2.9&nbsp;seconds. A ring expands
   outward from the strike point (its motion is far larger than the glyph, so it
-  reads even where the marker is buried under neighbours), while the bolt itself
-  pops in white-hot and cools to its type colour.
+  reads even where the marker is buried under neighbours), while the bolt drops a
+  few pixels into place, white-hot, and cools to its type colour.
+
+  The drop is applied to the `<svg>` rather than the marker wrapper, so the ring
+  stays pinned to the strike point instead of being dragged down with the glyph.
+  Each type scales from the point it actually hits — the tip for cloud-to-ground,
+  the centre for intra-cloud — so the strike location holds still while the glyph
+  grows.
 - **The state** — the bloom settles onto a **static** halo that holds, with
   nothing animating, for the rest of the 0–5 minute band. So a strike you never
   saw arrive is still identifiable as recent.

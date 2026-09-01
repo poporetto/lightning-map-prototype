@@ -228,15 +228,28 @@ html, body {
 .strike-ic .strike-ring { top: 50%; }
 
 /* ---- the moment: fires once when a strike arrives ---- */
-.strike-arrive             { animation: strike-pop 1.0s cubic-bezier(.22, 1, .36, 1) both; }
+/* The drop rides on the <svg>, not the wrapper, so the ring below stays pinned
+   to the strike point instead of being dragged down with the glyph. Two
+   animations on one element is fine here — they touch different properties. */
+.strike-arrive svg {
+  animation: strike-drop 1.0s cubic-bezier(.22, 1, .36, 1) both,
+             strike-bloom 2.9s ease-out both;
+}
 .strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
-.strike-arrive svg         { animation: strike-bloom 2.9s ease-out both; }
-.strike-arrive svg path    { animation: strike-cool 2.4s ease-out both; }
+.strike-arrive svg path     { animation: strike-cool 2.4s ease-out both; }
 
-@keyframes strike-pop {
-  0%   { transform: scale(1.6); opacity: 0; }
-  40%  { transform: scale(1.05); opacity: 1; }
-  100% { transform: scale(1); opacity: 1; }
+/* Scale from the point the strike actually hits, so it stays put while the
+   glyph grows: the tip for cloud-to-ground, the centre for intra-cloud. */
+.strike-cg svg { transform-origin: 50% 100%; }
+.strike-ic svg { transform-origin: 50% 50%; }
+
+/* Falls a few pixels into place as it lands — enough to read as downward
+   motion, not so much that it looks like the marker is in the wrong spot. */
+@keyframes strike-drop {
+  0%   { transform: translateY(-5px) scale(1.35); opacity: 0; }
+  30%  { opacity: 1; }
+  55%  { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
 }
 @keyframes strike-shock {
   0%   { transform: scale(.4); opacity: .95; border-width: 2px; }
@@ -260,6 +273,7 @@ html, body {
 @media (prefers-reduced-motion: reduce) {
   .strike-arrive, .strike-arrive .strike-ring,
   .strike-arrive svg, .strike-arrive svg path { animation: none; }
+  .strike-arrive svg { transform: none; opacity: 1; }
   .strike-arrive svg { filter: drop-shadow(0 0 4px var(--halo)); }
 }
 
