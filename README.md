@@ -159,18 +159,22 @@ The PRNG is seeded, so the data is identical on every reload. Change the seed in
 
 ## Icon licence
 
-None to observe. The bolt is drawn for this project — six vertices in
-`BOLT_PATH`, with the corners softened by a round stroke line-join rather than
-by curves in the path — so no icon set is involved and nothing needs
-attributing.
+None to observe. The bolt is original artwork supplied for this project —
+`lightning.svg` in the repo root is the source of truth, and its path is inlined
+into `BOLT_PATH`. No icon set is involved and nothing needs attributing.
 
-This was a deliberate swap away from Font Awesome. Font Awesome Free is fine for
-commercial use, but its icons are CC BY 4.0, which requires attribution. So do
-the popular alternatives, in a lighter way: Bootstrap Icons, Lucide, Tabler and
-Heroicons are MIT or ISC, which still requires the copyright notice to be
-preserved. Genuinely obligation-free means CC0 or your own path.
+The export's hardcoded `fill="#FFD426"` is deliberately dropped when the path is
+inlined. Markers take their fill, rim stroke and the white-hot arrival flash from
+CSS custom properties, so a baked-in colour would break both the palette switcher
+and the arrival animation.
 
-`icon-options.html` still shows Font Awesome glyphs, with their copyright line
+This replaced Font Awesome. FA Free is fine for commercial use, but its icons are
+CC BY 4.0, which requires attribution — and the popular alternatives only lighten
+that: Bootstrap Icons, Lucide, Tabler and Heroicons are MIT or ISC, which still
+require the copyright notice to be preserved. Genuinely obligation-free means CC0
+or your own artwork.
+
+`icon-options.html` still shows Font Awesome glyphs with their copyright line
 intact — it is a comparison artifact, not shipped code.
 
 ## Base maps

@@ -25,17 +25,13 @@ function ageStyle(ageMin) {
    1x walks the full 12 h in about three minutes. */
 const SPEED_MIN_PER_SEC = 4;
 
-/* Lightning bolt, drawn for this project rather than taken from an icon set, so
-   there is no third-party licence or attribution attached to it.
-
-   Proportioned like a classic bolt: wide and strongly slanted, both long sweeps
-   running at roughly 41 degrees, an upper arm about a third of the width and a
-   waist notch a little wider than that. Six vertices - top point, down-left to
-   the waist, the notch, the bottom point, up the long right sweep, back in.
-   The viewBox is cropped to the glyph plus room for the stroke, so the marker
-   box and the drawn shape are the same size. */
-const BOLT_PATH = 'M264 8 L8 280 L124 280 L64 496 L344 224 L228 224 Z';
-const BOLT_SVG = '<svg viewBox="0 0 352 504" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
+/* Lightning bolt artwork supplied for this project — see lightning.svg in the
+   repo root, which is the source of truth for this path. The export's hardcoded
+   fill="#FFD426" is deliberately dropped: the markers take fill, stroke and the
+   white-hot arrival flash from CSS custom properties, so a baked-in colour
+   would break the three palettes and the arrival animation. */
+const BOLT_PATH = 'M18.3193 0H6.95469C6.5366 0 6.16264 0.260099 6.01717 0.652067L0.0632346 16.6952C-0.179191 17.3484 0.303992 18.0431 1.00075 18.0431H10.277L7.94665 29.2503C7.73063 30.2892 9.06821 30.905 9.717 30.0653L22.3178 13.7581C22.8257 13.1008 22.3572 12.1466 21.5265 12.1466H12.9558L19.1824 1.50502C19.5725 0.838366 19.0917 0 18.3193 0Z';
+const BOLT_SVG = '<svg viewBox="0 0 23 31" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
 /* The ring sits behind the glyph and expands from the strike point on arrival. */
 const RING_SPAN = '<span class="strike-ring"></span>';
 
@@ -191,7 +187,7 @@ function makeIcon(strike, fresh, arrive) {
   const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
   if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
-  const size = strike.type === 'cg' ? [17, 24] : [13, 19];
+  const size = strike.type === 'cg' ? [18, 24] : [14, 19];
   return L.divIcon({
     className: 'strike-icon',
     html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') + BOLT_SVG + '</div>',
