@@ -243,13 +243,27 @@ function renderStrikes() {
       });
       marker.bindPopup(popupHtml(s), { className: 'strike-popup', closeButton: false, offset: [0, -8] });
       marker.addTo(strikeLayer);
+
+      // The arrival animation is longer than the 5-minute fresh band is at
+      // normal playback speed, so it has to end on its own terms rather than be
+      // cut off mid-flash when the strike ages out. Its last keyframe is the
+      // static halo that .strike-fresh paints, so dropping the class is
+      // invisible either way.
+      if (style.fresh && !jumped) {
+        const el = marker.getElement();
+        const inner = el && el.firstElementChild;
+        if (inner) inner.addEventListener('animationend', ev => {
+          if (ev.animationName === 'strike-bloom') inner.classList.remove('strike-arrive');
+        });
+      }
       entry = { marker, opacity: -1, fresh: style.fresh };
       mounted.set(s.id, entry);
     } else if (entry.fresh && !style.fresh) {
-      // Aged out of the "fresh" band — drop the glow without rebuilding.
+      // Aged out of the "fresh" band — drop the halo without rebuilding. Any
+      // arrival still in flight is left alone; it removes its own class.
       const inner = entry.marker.getElement() && entry.marker.getElement().firstElementChild;
       if (inner) {
-        inner.classList.remove('strike-fresh', 'strike-arrive');
+        inner.classList.remove('strike-fresh');
         entry.fresh = false;
       }
     }

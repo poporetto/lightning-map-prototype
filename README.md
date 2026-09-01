@@ -57,7 +57,7 @@ created up front.
 New strikes are signalled in two separate registers, because a one-shot
 animation only helps if you happened to be looking at that pixel when it fired:
 
-- **The moment** — fires once, over about 1.8&nbsp;seconds. A ring expands
+- **The moment** — fires once, over about 2.9&nbsp;seconds. A ring expands
   outward from the strike point (its motion is far larger than the glyph, so it
   reads even where the marker is buried under neighbours), while the bolt itself
   pops in white-hot and cools to its type colour.
@@ -68,6 +68,13 @@ animation only helps if you happened to be looking at that pixel when it fired:
 The moment's final keyframe *is* the state, so one animation covers both and
 nothing is left looping — which matters when several hundred markers are on
 screen at once.
+
+At 1&times; playback the 5-minute fresh band lasts about 1.25&nbsp;s of wall
+clock, which is *shorter* than the arrival animation. So the arrival is not
+allowed to be cancelled when a strike ages out — it removes its own class on
+`animationend`, and ageing out only drops the static halo. Otherwise a strike
+crossing the 5-minute line would snap from white-hot to its type colour
+mid-flash.
 
 Scrubbing the slider more than five minutes at a time suppresses the arrival
 animation entirely: jumping to a new time mounts a whole fresh band at once, and

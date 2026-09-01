@@ -228,10 +228,10 @@ html, body {
 .strike-ic .strike-ring { top: 50%; }
 
 /* ---- the moment: fires once when a strike arrives ---- */
-.strike-arrive             { animation: strike-pop .65s cubic-bezier(.22, 1, .36, 1) both; }
-.strike-arrive .strike-ring { animation: strike-shock 1.8s cubic-bezier(.15, .7, .3, 1) both; }
-.strike-arrive svg         { animation: strike-bloom 1.8s ease-out both; }
-.strike-arrive svg path    { animation: strike-cool 1.5s ease-out both; }
+.strike-arrive             { animation: strike-pop 1.0s cubic-bezier(.22, 1, .36, 1) both; }
+.strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
+.strike-arrive svg         { animation: strike-bloom 2.9s ease-out both; }
+.strike-arrive svg path    { animation: strike-cool 2.4s ease-out both; }
 
 @keyframes strike-pop {
   0%   { transform: scale(1.6); opacity: 0; }
