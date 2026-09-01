@@ -5,10 +5,35 @@
   --text: #e9edf2;
   --muted: #9aa4b1;
   --accent: #7db3ff;
+  /* Default palette. Each scheme sets four vars: the two fills, their rim
+     highlights, and the halo each type blooms to on arrival. */
   --cg: #ffb020;      /* cloud-to-ground: orange-yellow */
   --cg-hi: #ffe27a;
+  --cg-halo: rgba(255, 226, 122, .8);
   --ic: #4da6ff;      /* intra-cloud: blue */
   --ic-hi: #a8d5ff;
+  --ic-halo: rgba(168, 213, 255, .8);
+}
+
+/* Violet reads as electrical discharge and sits nearly opposite the orange on
+   the wheel, so the two types separate further than blue manages. */
+body[data-scheme="purple"] {
+  --ic: #a06bff;
+  --ic-hi: #d7bcff;
+  --ic-halo: rgba(215, 188, 255, .8);
+}
+
+/* Deliberately unequal. Cloud-to-ground runs hotter and brighter; intra-cloud
+   is pulled down to a muted steel that recedes. Intra-cloud is ~87% of strikes
+   and cloud-to-ground is the one that matters on the ground, so the palette
+   spends contrast where the significance is rather than splitting it evenly. */
+body[data-scheme="hot"] {
+  --cg: #ffc233;
+  --cg-hi: #fff0b8;
+  --cg-halo: rgba(255, 240, 184, .9);
+  --ic: #7fb3d5;
+  --ic-hi: #cfe4f2;
+  --ic-halo: rgba(207, 228, 242, .7);
 }
 
 * { box-sizing: border-box; }
@@ -104,10 +129,10 @@ html, body {
 .legend-icon .strike-marker { width: 100%; height: 100%; display: block; }
 
 .age-ramp { display: flex; gap: 4px; }
-.age-ramp span {
-  flex: 1; height: 8px; border-radius: 3px;
-  background: #c9d3de;
-}
+.age-ramp + .age-ramp { margin-top: 4px; }
+.age-ramp span { flex: 1; height: 7px; border-radius: 3px; }
+.age-ramp-cg span { background: var(--cg); }
+.age-ramp-ic span { background: var(--ic); }
 .age-scale {
   display: flex; justify-content: space-between;
   font-size: 10px; color: var(--muted); margin-top: 4px;
@@ -173,7 +198,7 @@ html, body {
 }
 
 .speed { flex: none; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-.speed select {
+#scheme-select, .speed select {
   background: rgba(255, 255, 255, .08); color: var(--text);
   border: 1px solid var(--panel-border); border-radius: 8px;
   padding: 4px 6px; font: inherit; font-size: 12px; cursor: pointer;
@@ -189,8 +214,8 @@ html, body {
   fill: var(--c); stroke: var(--c2); stroke-width: 14;
   stroke-linejoin: round; stroke-linecap: round;
 }
-.strike-cg { --c: var(--cg); --c2: var(--cg-hi); --halo: rgba(255, 226, 122, .8); }
-.strike-ic { --c: var(--ic); --c2: var(--ic-hi); --halo: rgba(168, 213, 255, .8); }
+.strike-cg { --c: var(--cg); --c2: var(--cg-hi); --halo: var(--cg-halo); }
+.strike-ic { --c: var(--ic); --c2: var(--ic-hi); --halo: var(--ic-halo); }
 
 /* The shockwave ring expands from the strike point itself, so it is anchored to
    the bolt tip for cloud-to-ground and to the centre for intra-cloud. */
@@ -203,10 +228,10 @@ html, body {
 .strike-ic .strike-ring { top: 50%; }
 
 /* ---- the moment: fires once when a strike arrives ---- */
-.strike-arrive             { animation: strike-pop .40s cubic-bezier(.22, 1, .36, 1) both; }
-.strike-arrive .strike-ring { animation: strike-shock 1.1s cubic-bezier(.15, .7, .3, 1) both; }
-.strike-arrive svg         { animation: strike-bloom 1.1s ease-out both; }
-.strike-arrive svg path    { animation: strike-cool .9s ease-out both; }
+.strike-arrive             { animation: strike-pop .65s cubic-bezier(.22, 1, .36, 1) both; }
+.strike-arrive .strike-ring { animation: strike-shock 1.8s cubic-bezier(.15, .7, .3, 1) both; }
+.strike-arrive svg         { animation: strike-bloom 1.8s ease-out both; }
+.strike-arrive svg path    { animation: strike-cool 1.5s ease-out both; }
 
 @keyframes strike-pop {
   0%   { transform: scale(1.6); opacity: 0; }
@@ -218,15 +243,15 @@ html, body {
   100% { transform: scale(6); opacity: 0; border-width: .5px; }
 }
 @keyframes strike-cool {
-  0%, 18% { fill: #fff; stroke: #fff; }
+  0%, 24% { fill: #fff; stroke: #fff; }
   100%    { fill: var(--c); stroke: var(--c2); }
 }
 /* Ends on the static halo below, so the moment resolves into the state with no
    second animation and nothing left looping. */
 @keyframes strike-bloom {
   0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
-  22%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
-  55%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
+  28%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
+  60%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
 }
 
 /* ---- the state: held, unanimated, for the rest of the 0-5 min band ---- */

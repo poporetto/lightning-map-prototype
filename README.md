@@ -57,8 +57,8 @@ created up front.
 New strikes are signalled in two separate registers, because a one-shot
 animation only helps if you happened to be looking at that pixel when it fired:
 
-- **The moment** — fires once, over about a second. A ring expands outward from
-  the strike point (its motion is far larger than the 13&nbsp;px glyph, so it
+- **The moment** — fires once, over about 1.8&nbsp;seconds. A ring expands
+  outward from the strike point (its motion is far larger than the glyph, so it
   reads even where the marker is buried under neighbours), while the bolt itself
   pops in white-hot and cools to its type colour.
 - **The state** — the bloom settles onto a **static** halo that holds, with
@@ -73,6 +73,33 @@ Scrubbing the slider more than five minutes at a time suppresses the arrival
 animation entirely: jumping to a new time mounts a whole fresh band at once, and
 several hundred simultaneous rings would be noise rather than information.
 `prefers-reduced-motion` drops straight to the static halo.
+
+## Strike colours
+
+Three palettes, switchable from the panel. They only change CSS custom
+properties, so every marker already on the map repaints instantly with no
+re-render.
+
+| Scheme | Cloud-to-ground | Cloud (intra-cloud) |
+| --- | --- | --- |
+| Orange & blue *(default)* | `#ffb020` | `#4da6ff` |
+| Orange & purple | `#ffb020` | `#a06bff` |
+| Hot & muted | `#ffc233` | `#7fb3d5` |
+
+Violet sits nearly opposite orange on the wheel, so **orange & purple** separates
+the two types further than blue manages, and it carries an electrical-discharge
+association that suits intra-cloud.
+
+**Hot & muted** is deliberately unequal rather than a third colour pairing.
+Cloud-to-ground runs hotter and brighter while intra-cloud drops to a muted
+steel that recedes. Intra-cloud is ~87% of strikes and cloud-to-ground is the
+one that matters on the ground, so this palette spends its contrast where the
+significance is instead of splitting it evenly. It is the best of the three at
+storm density; the other two are easier to read as two equal categories.
+
+The strike-age swatches in the legend show both types as solid bars at each
+opacity step — no gradient, since the ramp encodes opacity only and blending the
+two type colours would imply a scale between them.
 
 ## Timeline
 

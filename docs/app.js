@@ -314,6 +314,12 @@ document.getElementById('speed-select').addEventListener('change', e => {
   state.speed = Number(e.target.value);
 });
 
+document.getElementById('scheme-select').addEventListener('change', e => {
+  // Markers read their colours from CSS vars, so switching the palette repaints
+  // every strike already on the map without re-rendering anything.
+  document.body.dataset.scheme = e.target.value;
+});
+
 document.getElementById('radar-toggle').addEventListener('change', e => {
   state.radarOn = e.target.checked;
   applyRadar();

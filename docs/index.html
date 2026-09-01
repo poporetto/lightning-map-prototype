@@ -23,6 +23,15 @@
     </div>
 
     <div class="control-row">
+      <span class="control-label">Strike colours</span>
+      <select id="scheme-select">
+        <option value="blue" selected>Orange &amp; blue</option>
+        <option value="purple">Orange &amp; purple</option>
+        <option value="hot">Hot &amp; muted</option>
+      </select>
+    </div>
+
+    <div class="control-row">
       <span class="control-label">Rain radar</span>
       <label class="switch">
         <input type="checkbox" id="radar-toggle" checked>
@@ -44,7 +53,13 @@
       </div>
 
       <div class="legend-title">Strike age <span class="muted">(fades out after 60&nbsp;min)</span></div>
-      <div class="age-ramp">
+      <div class="age-ramp age-ramp-cg">
+        <span style="opacity:1"></span>
+        <span style="opacity:.85"></span>
+        <span style="opacity:.65"></span>
+        <span style="opacity:.45"></span>
+      </div>
+      <div class="age-ramp age-ramp-ic">
         <span style="opacity:1"></span>
         <span style="opacity:.85"></span>
         <span style="opacity:.65"></span>
