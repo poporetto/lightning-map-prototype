@@ -47,7 +47,15 @@ const CELLS = [
   { name: 'Bass Strait',                lat: -40.0, lon: 143.6, driftLat: 0.3, driftLon: 2.4, spread: 0.80, weight: 0.55, cgBias: 0.7 },
   { name: 'Western Tasmania',           lat: -42.2, lon: 145.6, driftLat: 0.2, driftLon: 1.2, spread: 0.55, weight: 0.60, cgBias: 0.8 },
   { name: 'Inland NSW',                 lat: -32.2, lon: 146.5, driftLat: 0.6, driftLon: 2.6, spread: 1.30, weight: 0.45, cgBias: 0.6 },
-  { name: 'Northern SA',                lat: -31.6, lon: 134.2, driftLat: 0.8, driftLon: 3.8, spread: 1.00, weight: 0.40, cgBias: 0.7 }
+  { name: 'Northern SA',                lat: -31.6, lon: 134.2, driftLat: 0.8, driftLon: 3.8, spread: 1.00, weight: 0.40, cgBias: 0.7 },
+  /* Storms building over the Blue Mountains and running east across the Sydney
+     basin out to sea is the classic summer pattern there, and it gives the
+     default Sydney view something to show. */
+  { name: 'Blue Mountains / Sydney',    lat: -33.72, lon: 149.9, driftLat: 0.25, driftLon: 1.35, spread: 0.45, weight: 0.70, cgBias: 1.2,
+    // Pinned rather than randomised: the map opens on Sydney at the newest end
+    // of the timeline, so this cell has to still be going when you land. Peaking
+    // at 82% through the window leaves it active but past its worst.
+    peak: 0.82, width: 0.30 }
 ];
 
 /*
@@ -63,8 +71,12 @@ function generateStrikes(endTime, seed = 20260901) {
 
   CELLS.forEach((cell, ci) => {
     // Each cell has an activity envelope: it ramps up, peaks, then decays.
-    const peak = 0.25 + rng() * 0.55;      // fraction through the window
-    const width = 0.16 + rng() * 0.22;     // how long it stays active
+    // Both draws happen either way so overriding one cell cannot shift the
+    // random sequence for the others.
+    const rolledPeak = 0.25 + rng() * 0.55;   // fraction through the window
+    const rolledWidth = 0.16 + rng() * 0.22;  // how long it stays active
+    const peak = cell.peak !== undefined ? cell.peak : rolledPeak;
+    const width = cell.width !== undefined ? cell.width : rolledWidth;
 
     // Walk the window in 1-minute steps, firing Poisson-ish bursts.
     const stepMs = 60 * 1000;

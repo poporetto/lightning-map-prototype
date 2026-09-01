@@ -152,10 +152,19 @@ would need an archive feed.
 
 ## Mock data
 
-`data.js` generates strikes from seven convective cells that migrate roughly
+The map opens on Sydney at zoom 8, at the newest end of the timeline.
+
+`data.js` generates strikes from eight convective cells that migrate roughly
 W→E across the 12 hours, matching the reference imagery (Adelaide / Gulf St
 Vincent, Kingston SE, a western Victoria front trailing into Bass Strait,
-western Tasmania, inland NSW, northern SA). Each cell has an activity envelope
+western Tasmania, inland NSW, northern SA), plus a cell building over the Blue
+Mountains and running east across the Sydney basin — the classic summer pattern
+there, and what the default view is looking at.
+
+Every cell's activity envelope is randomised except the Sydney one, whose peak
+and width are pinned so it is still going when the map opens rather than having
+decayed by "now". Both random draws still happen for it, so overriding them
+cannot shift the sequence for the other cells. Each cell has an activity envelope
 that ramps up, peaks, and decays, and fires Poisson bursts within it — quiet
 stretches then flurries — with scatter elongated along the drift axis so cells
 read as streaks rather than blobs.

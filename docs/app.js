@@ -53,8 +53,8 @@ const mounted = new Map();       // strike id -> { marker, inner, opacity }
 /* ---------------- map ---------------- */
 
 const map = L.map('map', {
-  center: [-37.2, 142.0],
-  zoom: 5,
+  center: [-33.87, 151.21],
+  zoom: 8,
   zoomControl: false,
   preferCanvas: false,
   worldCopyJump: false
