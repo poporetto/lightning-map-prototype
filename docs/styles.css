@@ -227,7 +227,10 @@ html, body {
 }
 .strike-ic .strike-ring { top: 50%; }
 
-/* ---- the moment: fires once when a strike arrives ---- */
+/* ---- the moment ----
+   Fires once, on strikes landing at the newest timestamp. Every keyframe below
+   ends on the marker's resting appearance, so when the class is dropped the
+   marker is left carrying nothing but its age opacity. ---- */
 /* The drop rides on the <svg>, not the wrapper, so the ring below stays pinned
    to the strike point instead of being dragged down with the glyph. Two
    animations on one element is fine here — they touch different properties. */
@@ -259,21 +262,20 @@ html, body {
   0%, 24% { fill: #fff; stroke: #fff; }
   100%    { fill: var(--c); stroke: var(--c2); }
 }
-/* Ends on the static halo below, so the moment resolves into the state with no
-   second animation and nothing left looping. */
+/* Settles back onto the plain marker shadow rather than holding a halo, so
+   removing the class at the end is invisible. */
 @keyframes strike-bloom {
-  0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
-  28%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
-  60%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
+  0%   { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
+  28%  { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
+  60%  { filter: drop-shadow(0 0 4px var(--halo)); }
+  100% { filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85)); }
 }
-
-/* ---- the state: held, unanimated, for the rest of the 0-5 min band ---- */
-.strike-fresh svg { filter: drop-shadow(0 0 4px var(--halo)); }
 
 @media (prefers-reduced-motion: reduce) {
   .strike-arrive, .strike-arrive .strike-ring,
   .strike-arrive svg, .strike-arrive svg path { animation: none; }
   .strike-arrive svg { transform: none; opacity: 1; }
+  .strike-arrive .strike-ring { display: none; }
   .strike-arrive svg { filter: drop-shadow(0 0 4px var(--halo)); }
 }
 

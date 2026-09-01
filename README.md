@@ -39,53 +39,58 @@ each marker can carry its own fill and animation:
 
 Opacity follows the strike's age **relative to the currently selected timeline
 time** (not wall-clock now), so scrubbing backwards behaves the same as playing
-forwards:
+forwards. The spec's four steps are kept as anchor points, but the value is
+interpolated between them so a strike fades continuously as the timeline moves
+rather than snapping down in four jumps:
 
-| Strike age | Opacity | Extra |
-| --- | --- | --- |
-| 0–5 min | 100% | subtle glow pulse |
-| 5–15 min | 85% | — |
-| 15–30 min | 65% | — |
-| 30–60 min | 45% | — |
-| over 60 min | hidden | — |
+| Strike age | Opacity |
+| --- | --- |
+| 0–5 min | 100% |
+| 15 min | 85% |
+| 30 min | 65% |
+| 60 min | 45% |
+| over 60 min | hidden |
 
-Because anything older than 60 minutes is hidden, only ~1/12 of the 12-hour
-dataset is on screen at once (roughly 200–460 markers at the storm peak).
-Markers are mounted and unmounted as that window slides, rather than all being
-created up front.
+Each anchor is hit exactly at its own boundary; ages in between are linear and
+quantised to 1%, which keeps a marker from being restyled on every frame. Ages
+below zero — strikes in the future relative to the playhead — are hidden too.
 
-New strikes are signalled in two separate registers, because a one-shot
-animation only helps if you happened to be looking at that pixel when it fired:
+Because anything older than 60 minutes is hidden, only a fraction of the
+12-hour dataset is on screen at once (roughly 500–650 markers at the storm
+peak). Markers are mounted and unmounted as that window slides, rather than all
+being created up front.
 
-- **The moment** — fires once, over about 2.9&nbsp;seconds. A ring expands
-  outward from the strike point (its motion is far larger than the glyph, so it
-  reads even where the marker is buried under neighbours), while the bolt drops a
-  few pixels into place, white-hot, and cools to its type colour.
+## The arrival animation
 
-  The drop is applied to the `<svg>` rather than the marker wrapper, so the ring
+A strike animates **only on the step of the timeline it actually lands on** —
+the newest timestamp — not for as long as it is young. Over about 2.9 seconds a
+ring expands outward from the strike point (its motion is far larger than the
+glyph, so it reads even where the marker is buried under neighbours), while the
+bolt drops a few pixels into place, white-hot, and cools to its type colour.
+
+Once it has played out the marker is plain again, carrying nothing but its age
+opacity. Every keyframe ends on the marker's resting appearance, so dropping the
+class at the end is invisible.
+
+The animation is pure CSS — four `@keyframes` rules in `styles.css`. JavaScript
+only adds a class on arrival and removes it on `animationend`; it never touches
+transforms, filters or colours. Opacity is the one thing JS must set directly,
+since it is a function of where the playhead is and CSS has no way to know that.
+
+Two details that keep it honest:
+
+- The drop is applied to the `<svg>` rather than the marker wrapper, so the ring
   stays pinned to the strike point instead of being dragged down with the glyph.
-  Each type scales from the point it actually hits — the tip for cloud-to-ground,
-  the centre for intra-cloud — so the strike location holds still while the glyph
-  grows.
-- **The state** — the bloom settles onto a **static** halo that holds, with
-  nothing animating, for the rest of the 0–5 minute band. So a strike you never
-  saw arrive is still identifiable as recent.
+  Each type scales from the point it actually hits — the tip for
+  cloud-to-ground, the centre for intra-cloud — so the strike location holds
+  still while the glyph grows.
+- The animation removes its own class on `animationend` rather than being
+  cancelled when the strike ages, so it can never be cut off mid-flash.
+  `prefers-reduced-motion` skips it entirely.
 
-The moment's final keyframe *is* the state, so one animation covers both and
-nothing is left looping — which matters when several hundred markers are on
-screen at once.
-
-At 1&times; playback the 5-minute fresh band lasts about 1.25&nbsp;s of wall
-clock, which is *shorter* than the arrival animation. So the arrival is not
-allowed to be cancelled when a strike ages out — it removes its own class on
-`animationend`, and ageing out only drops the static halo. Otherwise a strike
-crossing the 5-minute line would snap from white-hot to its type colour
-mid-flash.
-
-Scrubbing the slider more than five minutes at a time suppresses the arrival
-animation entirely: jumping to a new time mounts a whole fresh band at once, and
-several hundred simultaneous rings would be noise rather than information.
-`prefers-reduced-motion` drops straight to the static halo.
+Scrubbing the slider more than five minutes at a time suppresses arrivals: a
+jump mounts a whole backlog at once, and hundreds of simultaneous rings would be
+noise rather than information.
 
 ## Strike colours
 

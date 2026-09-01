@@ -5,20 +5,33 @@
 
 const MINUTE = 60 * 1000;
 const WINDOW_MINUTES = LightningData.WINDOW_HOURS * 60;   // 720
-const MAX_AGE_MIN = 60;                                   // strikes hide after this
 
-/* Opacity ladder, straight from the spec. Age is measured against the
-   currently selected timeline time, not wall-clock now. */
-const AGE_STEPS = [
-  { maxMin: 5,  opacity: 1.00, fresh: true  },
-  { maxMin: 15, opacity: 0.85, fresh: false },
-  { maxMin: 30, opacity: 0.65, fresh: false },
-  { maxMin: 60, opacity: 0.45, fresh: false }
+/* Opacity by age, measured against the currently selected timeline time rather
+   than wall clock. The spec's four steps are kept as anchor points, but the
+   value is interpolated between them so a strike fades continuously as the
+   timeline moves instead of snapping down in four jumps. Each anchor is still
+   hit exactly at its own boundary: 100% to 5 min, then 85% at 15, 65% at 30,
+   45% at 60, hidden after that. */
+const AGE_STOPS = [
+  { min: 5,  opacity: 1.00 },
+  { min: 15, opacity: 0.85 },
+  { min: 30, opacity: 0.65 },
+  { min: 60, opacity: 0.45 }
 ];
+const MAX_AGE_MIN = AGE_STOPS[AGE_STOPS.length - 1].min;
 
-function ageStyle(ageMin) {
-  for (const step of AGE_STEPS) if (ageMin < step.maxMin) return step;
-  return null; // hidden
+function ageOpacity(ageMin) {
+  if (ageMin < 0 || ageMin >= MAX_AGE_MIN) return null;   // future, or aged out
+  if (ageMin <= AGE_STOPS[0].min) return 1;
+  for (let i = 1; i < AGE_STOPS.length; i++) {
+    const from = AGE_STOPS[i - 1], to = AGE_STOPS[i];
+    if (ageMin <= to.min) {
+      const t = (ageMin - from.min) / (to.min - from.min);
+      // Quantised so a marker is not restyled on every single frame.
+      return Math.round((from.opacity + (to.opacity - from.opacity) * t) * 100) / 100;
+    }
+  }
+  return null;
 }
 
 /* Playback speeds expressed as minutes-of-data per second of wall clock.
@@ -190,9 +203,8 @@ function lowerBound(t) {
   return lo;
 }
 
-function makeIcon(strike, fresh, arrive) {
+function makeIcon(strike, arrive) {
   const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
-  if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
   const size = strike.type === 'cg' ? [18, 24] : [14, 19];
   return L.divIcon({
@@ -220,7 +232,6 @@ function renderStrikes() {
   // arrival rings for that is noise, not information. Only strikes that arrive
   // while time is running forward normally get the moment.
   const jumped = lastRenderTime === null || Math.abs(t - lastRenderTime) > 5 * MINUTE;
-  lastRenderTime = t;
   const from = lowerBound(t - MAX_AGE_MIN * MINUTE);
   const to = lowerBound(t + 1);     // strikes in the future are not shown
 
@@ -229,17 +240,21 @@ function renderStrikes() {
 
   for (let i = from; i < to; i++) {
     const s = strikes[i];
-    const ageMin = (t - s.time) / MINUTE;
-    const style = ageStyle(ageMin);
-    if (!style) continue;
+    const opacity = ageOpacity((t - s.time) / MINUTE);
+    if (opacity === null) continue;
 
     seen.add(s.id);
     if (s.type === 'cg') cg++; else ic++;
 
     let entry = mounted.get(s.id);
     if (!entry) {
+      // The arrival fires only for strikes that landed on this very step of the
+      // timeline — the newest timestamp — not for everything still young. A
+      // scrub mounts a whole backlog at once and must stay silent.
+      const arrive = !jumped && s.time > lastRenderTime;
+
       const marker = L.marker([s.lat, s.lon], {
-        icon: makeIcon(s, style.fresh, style.fresh && !jumped),
+        icon: makeIcon(s, arrive),
         keyboard: false,
         riseOnHover: true,
         interactive: true
@@ -247,33 +262,24 @@ function renderStrikes() {
       marker.bindPopup(popupHtml(s), { className: 'strike-popup', closeButton: false, offset: [0, -8] });
       marker.addTo(strikeLayer);
 
-      // The arrival animation is longer than the 5-minute fresh band is at
-      // normal playback speed, so it has to end on its own terms rather than be
-      // cut off mid-flash when the strike ages out. Its last keyframe is the
-      // static halo that .strike-fresh paints, so dropping the class is
-      // invisible either way.
-      if (style.fresh && !jumped) {
+      // Once the arrival has played out the marker is plain again, carrying
+      // nothing but its age opacity. The animation drops its own class on
+      // animationend so ageing can never cut it off part-way through.
+      if (arrive) {
         const el = marker.getElement();
         const inner = el && el.firstElementChild;
         if (inner) inner.addEventListener('animationend', ev => {
           if (ev.animationName === 'strike-bloom') inner.classList.remove('strike-arrive');
         });
       }
-      entry = { marker, opacity: -1, fresh: style.fresh };
+
+      entry = { marker, opacity: -1 };
       mounted.set(s.id, entry);
-    } else if (entry.fresh && !style.fresh) {
-      // Aged out of the "fresh" band — drop the halo without rebuilding. Any
-      // arrival still in flight is left alone; it removes its own class.
-      const inner = entry.marker.getElement() && entry.marker.getElement().firstElementChild;
-      if (inner) {
-        inner.classList.remove('strike-fresh');
-        entry.fresh = false;
-      }
     }
 
-    if (entry.opacity !== style.opacity) {
-      entry.marker.setOpacity(style.opacity);
-      entry.opacity = style.opacity;
+    if (entry.opacity !== opacity) {
+      entry.marker.setOpacity(opacity);
+      entry.opacity = opacity;
     }
   }
 
@@ -281,6 +287,7 @@ function renderStrikes() {
     if (!seen.has(id)) { strikeLayer.removeLayer(entry.marker); mounted.delete(id); }
   }
 
+  lastRenderTime = t;
   document.getElementById('count-cg').textContent = cg.toLocaleString();
   document.getElementById('count-ic').textContent = ic.toLocaleString();
 }
