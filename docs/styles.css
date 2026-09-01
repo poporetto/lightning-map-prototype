@@ -271,12 +271,14 @@ html, body {
   100% { filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85)); }
 }
 
+/* No arrival at all — the marker simply appears at its age opacity, which is
+   the same resting state the animation would have ended on anyway. */
 @media (prefers-reduced-motion: reduce) {
-  .strike-arrive, .strike-arrive .strike-ring,
-  .strike-arrive svg, .strike-arrive svg path { animation: none; }
+  .strike-arrive svg,
+  .strike-arrive svg path,
+  .strike-arrive .strike-ring { animation: none; }
   .strike-arrive svg { transform: none; opacity: 1; }
   .strike-arrive .strike-ring { display: none; }
-  .strike-arrive svg { filter: drop-shadow(0 0 4px var(--halo)); }
 }
 
 .strike-popup .leaflet-popup-content-wrapper {
