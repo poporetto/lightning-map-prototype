@@ -1,0 +1,235 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Static halo vs opacity only</title>
+<style>
+  :root {
+    --cg:#ffb020; --cg-hi:#ffe27a; --cg-halo:rgba(255,226,122,.8);
+    --ic:#4da6ff; --ic-hi:#a8d5ff; --ic-halo:rgba(168,213,255,.8);
+    --muted:#9aa4b1;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:#1b1e23; color:#e9edf2; padding:24px 28px 60px;
+    font:14px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  h1 { font-size:17px; margin:0 0 6px; }
+  h2 { font-size:14px; margin:34px 0 4px; }
+  p  { margin:0 0 14px; color:var(--muted); font-size:12.8px; max-width:900px; }
+  p b, li b { color:#e9edf2; }
+  ul { margin:0 0 14px 18px; padding:0; color:var(--muted); font-size:12.8px; max-width:900px; }
+  li { margin-bottom:5px; }
+  code { background:rgba(255,255,255,.08); padding:1px 5px; border-radius:4px; font-size:12px; }
+
+  .strip { background:#2f3339; border-radius:10px; padding:16px 8px 10px; margin-bottom:10px; }
+  .strip-label { color:var(--muted); font-size:10.5px; text-transform:uppercase;
+    letter-spacing:.7px; padding:0 12px 12px; }
+  .strip-label b { color:#e9edf2; letter-spacing:0; text-transform:none; font-size:12.5px; }
+  .ages { display:flex; justify-content:space-around; align-items:flex-end; }
+  .age { text-align:center; }
+  .age .cap { color:var(--muted); font-size:10px; margin-top:7px; }
+  .age .val { color:#6f7a87; font-size:9.5px; }
+  .age.recent .cap { color:#8ee6b0; }
+
+  /* ---- marker chrome, lifted from the app ---- */
+  .m { width:18px; height:24px; position:relative; display:inline-block; }
+  .m svg { width:100%; height:100%; display:block;
+    filter: drop-shadow(0 0 1.5px rgba(0,0,0,.85)); }
+  .m svg path { fill:var(--c); stroke:var(--c2); stroke-width:.9;
+    stroke-linejoin:round; stroke-linecap:round; }
+  .cg { --c:var(--cg); --c2:var(--cg-hi); --halo:var(--cg-halo); }
+  .ic { --c:var(--ic); --c2:var(--ic-hi); --halo:var(--ic-halo); }
+
+  /* THE ONE DIFFERENCE: in halo mode, strikes under 5 minutes keep a glow. */
+  .mode-halo .m.fresh svg { filter: drop-shadow(0 0 4px var(--halo)); }
+
+  .field { position:relative; height:260px; border-radius:10px; overflow:hidden;
+    background:#2f3339;
+    background-image:
+      radial-gradient(180px 110px at 32% 42%, rgba(120,140,160,.28), transparent),
+      radial-gradient(220px 130px at 68% 60%, rgba(110,130,150,.22), transparent); }
+  .field .m { position:absolute; }
+  .panes { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .pane h3 { font-size:12.5px; margin:0 0 7px; display:flex; gap:8px; align-items:center; }
+  .pill { font-size:9.5px; text-transform:uppercase; letter-spacing:.6px; padding:2px 7px;
+    border-radius:999px; border:1px solid rgba(255,255,255,.2); color:var(--muted); }
+
+  /* Answer key: rings the strikes that are genuinely under 5 minutes old. */
+  .reveal .m.fresh::after {
+    content:""; position:absolute; inset:-5px; border-radius:50%;
+    border:1.5px dashed #8ee6b0;
+  }
+
+  .bar { display:flex; gap:14px; align-items:center; margin:16px 0 10px;
+    font-size:12px; color:var(--muted); }
+  .bar button { background:rgba(255,255,255,.08); color:#e9edf2;
+    border:1px solid rgba(255,255,255,.14); border-radius:7px; padding:5px 11px;
+    font:inherit; font-size:12px; cursor:pointer; }
+  .bar button.on { background:#7db3ff; color:#0d1420; border-color:#7db3ff; }
+</style>
+</head>
+<body>
+
+<h1>Static halo vs opacity only</h1>
+<p>Both modes fade a strike out over 60&nbsp;minutes using exactly the same opacity ramp, and both
+play exactly the same arrival animation. The <b>only</b> difference is what happens <i>after</i> the
+animation finishes, for strikes still under 5&nbsp;minutes old.</p>
+
+<h2>1. The same strike at nine ages</h2>
+<p>This is the crux. Read the two rows against the age labels underneath. The opacity ramp holds at
+<b>100% for the whole 0–5 minute band</b>, then eases down — so in opacity-only mode a strike that
+landed <b>10 seconds ago and one that landed 5 minutes ago are pixel-identical</b>, and a 7-minute-old
+one is only 4% dimmer. Recency is not readable. The halo is what makes that band legible.</p>
+
+<div class="strip mode-halo">
+  <div class="strip-label"><b>Static halo</b> — under 5 min carries a glow (highlighted labels)</div>
+  <div class="ages" id="ages-halo"></div>
+</div>
+<div class="strip mode-opacity">
+  <div class="strip-label"><b>Opacity only</b> — current behaviour; the first three are identical</div>
+  <div class="ages" id="ages-plain"></div>
+</div>
+
+<h2>2. The same thing in motion</h2>
+<p>Identical strike streams in both panels — same positions, same times. Try to pick out which
+strikes arrived in the last 5 minutes <i>without</i> having watched them land, then hit
+<b>Show the answer</b> to ring them.</p>
+
+<div class="bar">
+  <button id="reveal">Show the answer</button>
+  <span id="stat"></span>
+</div>
+
+<div class="panes">
+  <div class="pane">
+    <h3>Static halo <span class="pill">moment + state</span></h3>
+    <div class="field mode-halo" id="field-halo"></div>
+  </div>
+  <div class="pane">
+    <h3>Opacity only <span class="pill">moment only</span></h3>
+    <div class="field mode-opacity" id="field-plain"></div>
+  </div>
+</div>
+
+<h2>What you are trading</h2>
+<ul>
+  <li><b>Static halo</b> — a strike you never saw arrive is still identifiable as recent for
+    5&nbsp;minutes. Costs a permanent visual difference on every young marker, which at storm density
+    is a lot of glowing at once.</li>
+  <li><b>Opacity only</b> — quieter and cleaner, and the animation is the only thing competing for
+    attention. But recency exists <i>only</i> in the moment it happens: miss the animation and the
+    information is gone until the strike is old enough for the opacity ramp to separate it.</li>
+</ul>
+<p>Which is right depends on whether someone is watching the map continuously or glancing at it.
+For a glanceable dashboard the halo earns its keep; for a map someone is actively watching play
+back, opacity-only is less noisy.</p>
+
+<script>
+/* Same artwork as the map. */
+const BOLT = '<svg viewBox="0 0 23 31"><path d="M18.3193 0H6.95469C6.5366 0 6.16264 0.260099 6.01717 0.652067L0.0632346 16.6952C-0.179191 17.3484 0.303992 18.0431 1.00075 18.0431H10.277L7.94665 29.2503C7.73063 30.2892 9.06821 30.905 9.717 30.0653L22.3178 13.7581C22.8257 13.1008 22.3572 12.1466 21.5265 12.1466H12.9558L19.1824 1.50502C19.5725 0.838366 19.0917 0 18.3193 0Z"/></svg>';
+
+/* The app's opacity ramp, verbatim: four anchors, linear between them. */
+const AGE_STOPS = [
+  { min: 5,  opacity: 1.00 },
+  { min: 15, opacity: 0.85 },
+  { min: 30, opacity: 0.65 },
+  { min: 60, opacity: 0.45 }
+];
+const MAX_AGE_MIN = 60;
+function ageOpacity(ageMin) {
+  if (ageMin < 0 || ageMin >= MAX_AGE_MIN) return null;
+  if (ageMin <= AGE_STOPS[0].min) return 1;
+  for (let i = 1; i < AGE_STOPS.length; i++) {
+    const from = AGE_STOPS[i - 1], to = AGE_STOPS[i];
+    if (ageMin <= to.min) {
+      const t = (ageMin - from.min) / (to.min - from.min);
+      return Math.round((from.opacity + (to.opacity - from.opacity) * t) * 100) / 100;
+    }
+  }
+  return null;
+}
+
+/* ---- section 1: the age strip ---- */
+const AGES = [0.2, 2, 5, 7, 10, 15, 30, 45, 59];
+function buildStrip(el) {
+  el.innerHTML = AGES.map(a => {
+    const o = ageOpacity(a);
+    const fresh = a <= 5;
+    const label = a < 1 ? '10 sec' : a + ' min';
+    return '<div class="age' + (fresh ? ' recent' : '') + '">' +
+      '<span class="m ic' + (fresh ? ' fresh' : '') + '" style="opacity:' + o + '">' + BOLT + '</span>' +
+      '<div class="cap">' + label + '</div>' +
+      '<div class="val">' + Math.round(o * 100) + '%</div>' +
+      '</div>';
+  }).join('');
+}
+buildStrip(document.getElementById('ages-halo'));
+buildStrip(document.getElementById('ages-plain'));
+
+/* ---- section 2: the live field ---- */
+/* Compressed clock: one real second is two simulated minutes, so the 5-minute
+   fresh band lasts 2.5s and a strike lives 30s. */
+const SIM_MIN_PER_SEC = 2;
+const fields = [document.getElementById('field-halo'), document.getElementById('field-plain')];
+let live = [];   // { simBirth, x, y, type, els: [el, el] }
+let simMin = 0;
+let seed = 1234567;
+function rnd(){ seed|=0; seed=(seed+0x6d2b79f5)|0; let t=Math.imul(seed^(seed>>>15),1|seed);
+  t=(t+Math.imul(t^(t>>>7),61|t))^t; return ((t^(t>>>14))>>>0)/4294967296; }
+
+/* Seed with a full 60 minutes of history so the panels start realistic. */
+function spawn(atSimMin) {
+  const cx = [0.3, 0.5, 0.68][Math.floor(rnd() * 3)];
+  const x = Math.min(94, Math.max(2, (cx + (rnd() - 0.5) * 0.34) * 100));
+  const y = Math.min(88, Math.max(2, (0.5 + (rnd() - 0.5) * 0.8) * 100));
+  const type = rnd() < 0.13 ? 'cg' : 'ic';
+  const els = fields.map(f => {
+    const el = document.createElement('span');
+    el.className = 'm ' + type;
+    el.style.left = x + '%';
+    el.style.top = y + '%';
+    el.innerHTML = BOLT;
+    f.appendChild(el);
+    return el;
+  });
+  live.push({ simBirth: atSimMin, els });
+}
+for (let a = -60; a < 0; a += 1.1) spawn(a);
+
+let last = performance.now();
+function tick(now) {
+  const dt = Math.min(now - last, 200) / 1000;
+  last = now;
+  simMin += dt * SIM_MIN_PER_SEC;
+
+  // ~0.9 strikes per simulated minute
+  if (rnd() < dt * SIM_MIN_PER_SEC * 0.9) spawn(simMin);
+
+  let freshCount = 0;
+  live = live.filter(s => {
+    const age = simMin - s.simBirth;
+    const o = ageOpacity(age);
+    if (o === null) { s.els.forEach(e => e.remove()); return false; }
+    const fresh = age <= 5;
+    if (fresh) freshCount++;
+    s.els.forEach(e => {
+      e.style.opacity = o;
+      e.classList.toggle('fresh', fresh);
+    });
+    return true;
+  });
+
+  document.getElementById('stat').textContent =
+    live.length + ' strikes on screen · ' + freshCount + ' of them under 5 minutes old';
+  requestAnimationFrame(tick);
+}
+requestAnimationFrame(tick);
+
+const btn = document.getElementById('reveal');
+btn.addEventListener('click', () => {
+  const on = btn.classList.toggle('on');
+  fields.forEach(f => f.classList.toggle('reveal', on));
+  btn.textContent = on ? 'Hide the answer' : 'Show the answer';
+});
+</script>
+</body>
+</html>

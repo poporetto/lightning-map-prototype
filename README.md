@@ -22,6 +22,7 @@ then visit http://localhost:5178
 | `docs/app.js` | Map, radar, timeline, strike rendering |
 | `docs/icon-options.html` | Throwaway: intra-cloud glyph comparison |
 | `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
+| `docs/halo-vs-opacity.html` | Throwaway: static halo vs opacity-only comparison |
 
 Everything lives in `docs/` so GitHub Pages can serve it directly — set
 **Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder
