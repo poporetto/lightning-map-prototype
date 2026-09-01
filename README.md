@@ -7,7 +7,7 @@ auto-playing timeline of lightning strikes.
 Open it with any static server:
 
 ```bash
-python3 -m http.server 5178
+python3 -m http.server 5178 --directory docs
 ```
 
 then visit http://localhost:5178
@@ -16,10 +16,17 @@ then visit http://localhost:5178
 
 | File | Purpose |
 | --- | --- |
-| `index.html` | Layout: map container, control panel, timeline bar |
-| `styles.css` | Dark UI, marker colours, arrival + glow animations |
-| `data.js` | Seeded mock strike generator |
-| `app.js` | Map, radar, timeline, strike rendering |
+| `docs/index.html` | Layout: map container, control panel, timeline bar |
+| `docs/styles.css` | Dark UI, marker colours, arrival animation |
+| `docs/data.js` | Seeded mock strike generator |
+| `docs/app.js` | Map, radar, timeline, strike rendering |
+| `docs/icon-options.html` | Throwaway: intra-cloud glyph comparison |
+| `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
+
+Everything lives in `docs/` so GitHub Pages can serve it directly — set
+**Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder
+`/docs`. There is no build step; the files in `docs/` are the source. `.nojekyll`
+stops Pages running the files through Jekyll.
 
 ## Strike rendering
 
@@ -47,10 +54,25 @@ dataset is on screen at once (roughly 200–460 markers at the storm peak).
 Markers are mounted and unmounted as that window slides, rather than all being
 created up front.
 
-A strike that arrives inside the 5-minute band gets a one-shot **arrival**
-animation — it drops in from slightly above, flashes bright, and settles — then
-holds the glow pulse until it ages past 5 minutes. Scrubbing into the middle of
-the window does not re-flash strikes that were already old.
+New strikes are signalled in two separate registers, because a one-shot
+animation only helps if you happened to be looking at that pixel when it fired:
+
+- **The moment** — fires once, over about a second. A ring expands outward from
+  the strike point (its motion is far larger than the 13&nbsp;px glyph, so it
+  reads even where the marker is buried under neighbours), while the bolt itself
+  pops in white-hot and cools to its type colour.
+- **The state** — the bloom settles onto a **static** halo that holds, with
+  nothing animating, for the rest of the 0–5 minute band. So a strike you never
+  saw arrive is still identifiable as recent.
+
+The moment's final keyframe *is* the state, so one animation covers both and
+nothing is left looping — which matters when several hundred markers are on
+screen at once.
+
+Scrubbing the slider more than five minutes at a time suppresses the arrival
+animation entirely: jumping to a new time mounts a whole fresh band at once, and
+several hundred simultaneous rings would be noise rather than information.
+`prefers-reduced-motion` drops straight to the static halo.
 
 ## Timeline
 
@@ -103,13 +125,19 @@ The PRNG is seeded, so the data is identical on every reload. Change the seed in
 
 ## Icon licence
 
-The bolt glyph is Font Awesome Free 6.5.2. Font Awesome Free is licensed for
-commercial use: **icons under CC BY 4.0**, fonts under SIL OFL 1.1, code under
-MIT. CC BY 4.0 requires attribution, which is why the copyright line stays in
-the comment above the path in `app.js`. The credit also belongs somewhere
-user-visible in a shipped product (an about screen or a colophon is enough).
+None to observe. The bolt is drawn for this project — six vertices in
+`BOLT_PATH`, with the corners softened by a round stroke line-join rather than
+by curves in the path — so no icon set is involved and nothing needs
+attributing.
 
-Only the path data is inlined — no Font Awesome CSS or webfont is loaded.
+This was a deliberate swap away from Font Awesome. Font Awesome Free is fine for
+commercial use, but its icons are CC BY 4.0, which requires attribution. So do
+the popular alternatives, in a lighter way: Bootstrap Icons, Lucide, Tabler and
+Heroicons are MIT or ISC, which still requires the copyright notice to be
+preserved. Genuinely obligation-free means CC0 or your own path.
+
+`icon-options.html` still shows Font Awesome glyphs, with their copyright line
+intact — it is a comparison artifact, not shipped code.
 
 ## Base maps
 

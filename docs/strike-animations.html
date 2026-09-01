@@ -37,7 +37,7 @@
   .m { position:absolute; width:13px; height:20px; }
   .m svg { width:100%; height:100%; display:block;
     filter: drop-shadow(0 0 1.5px rgba(0,0,0,.85)); }
-  .m svg path { fill:var(--c); stroke:var(--c2); stroke-width:14; }
+  .m svg path { fill:var(--c); stroke:var(--c2); stroke-width:14; stroke-linejoin:round; stroke-linecap:round; }
   .m.cg { --c:#ffb020; --c2:#ffe27a; }
   .m.ic { --c:#4da6ff; --c2:#a8d5ff; }
   /* older strikes, for context */
@@ -145,8 +145,8 @@ strike you didn't happen to be looking at is still identifiable.</p>
 <div class="cards" id="cards"></div>
 
 <script>
-/* Font Awesome Free 6.5.2 "bolt" (solid) — Icons: CC BY 4.0, (c) 2024 Fonticons, Inc. */
-const BOLT = '<svg viewBox="0 0 448 512"><path d="M349.4 44.6c5.9-13.7 1.5-29.7-10.6-38.5s-28.6-8-39.9 1.8l-256 224c-10 8.8-13.6 22.9-8.9 35.3S50.7 288 64 288H175.5L98.6 467.4c-5.9 13.7-1.5 29.7 10.6 38.5s28.6 8 39.9-1.8l256-224c10-8.8 13.6-22.9 8.9-35.3s-16.6-20.7-30-20.7H272.5L349.4 44.6z"/></svg>';
+/* Same project-drawn bolt as the map — no third-party icon set involved. */
+const BOLT = '<svg viewBox="0 0 320 512"><path d="M216 0 L40 288 L136 288 L104 512 L280 224 L184 224 Z"/></svg>';
 
 const OPTIONS = [
   { k:'a', name:'Current — drop-in + looping glow', kind:'moment',

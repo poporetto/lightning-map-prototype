@@ -25,12 +25,15 @@ function ageStyle(ageMin) {
    1x walks the full 12 h in about three minutes. */
 const SPEED_MIN_PER_SEC = 4;
 
-/* Font Awesome Free 6.5.2 "bolt" (solid), inlined rather than loaded from the FA
-   stylesheet so each marker can carry its own fill and animation.
-   Icons: CC BY 4.0 - https://fontawesome.com/license/free
-   Copyright 2024 Fonticons, Inc. */
-const BOLT_PATH = 'M296 160H180.6l42.6-129.8C227.2 15 215.7 0 200 0H56C44 0 33.8 8.9 32.2 20.8l-32 240C-1.7 275.2 9.5 288 24 288h118.7L96.6 482.5c-3.6 15.2 8 29.5 23.3 29.5 8.4 0 16.4-4.4 20.8-12l176-304c9.3-15.9-2.2-36-20.7-36z';
+/* Lightning bolt, drawn for this project rather than taken from an icon set, so
+   there is no third-party licence or attribution attached to it. Six vertices:
+   top point, down-left to the waist, the notch, the bottom point, back up the
+   right edge. Corners are softened by the round line-join on the stroke rather
+   than by curves in the path. */
+const BOLT_PATH = 'M216 0 L40 288 L136 288 L104 512 L280 224 L184 224 Z';
 const BOLT_SVG = '<svg viewBox="0 0 320 512" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
+/* The ring sits behind the glyph and expands from the strike point on arrival. */
+const RING_SPAN = '<span class="strike-ring"></span>';
 
 /* ---------------- state ---------------- */
 
@@ -187,7 +190,7 @@ function makeIcon(strike, fresh, arrive) {
   const size = strike.type === 'cg' ? [15, 24] : [12, 19];
   return L.divIcon({
     className: 'strike-icon',
-    html: '<div class="' + cls.join(' ') + '">' + BOLT_SVG + '</div>',
+    html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') + BOLT_SVG + '</div>',
     iconSize: size,
     // CG bolts point at the ground, so anchor them at the tip.
     iconAnchor: strike.type === 'cg' ? [size[0] / 2, size[1]] : [size[0] / 2, size[1] / 2]
@@ -202,8 +205,15 @@ function popupHtml(s) {
     '<span class="k">Peak current</span> ' + s.amps + ' kA';
 }
 
+let lastRenderTime = null;
+
 function renderStrikes() {
   const t = selectedTime();
+  // Jumping the slider mounts a whole fresh band at once; firing hundreds of
+  // arrival rings for that is noise, not information. Only strikes that arrive
+  // while time is running forward normally get the moment.
+  const jumped = lastRenderTime === null || Math.abs(t - lastRenderTime) > 5 * MINUTE;
+  lastRenderTime = t;
   const from = lowerBound(t - MAX_AGE_MIN * MINUTE);
   const to = lowerBound(t + 1);     // strikes in the future are not shown
 
@@ -221,10 +231,8 @@ function renderStrikes() {
 
     let entry = mounted.get(s.id);
     if (!entry) {
-      // Only play the arrival animation for strikes that really are new;
-      // scrubbing into the middle of the window shouldn't flash everything.
       const marker = L.marker([s.lat, s.lon], {
-        icon: makeIcon(s, style.fresh, style.fresh),
+        icon: makeIcon(s, style.fresh, style.fresh && !jumped),
         keyboard: false,
         riseOnHover: true,
         interactive: true
