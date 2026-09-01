@@ -26,12 +26,16 @@ function ageStyle(ageMin) {
 const SPEED_MIN_PER_SEC = 4;
 
 /* Lightning bolt, drawn for this project rather than taken from an icon set, so
-   there is no third-party licence or attribution attached to it. Six vertices:
-   top point, down-left to the waist, the notch, the bottom point, back up the
-   right edge. Corners are softened by the round line-join on the stroke rather
-   than by curves in the path. */
-const BOLT_PATH = 'M216 0 L40 288 L136 288 L104 512 L280 224 L184 224 Z';
-const BOLT_SVG = '<svg viewBox="0 0 320 512" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
+   there is no third-party licence or attribution attached to it.
+
+   Proportioned like a classic bolt: wide and strongly slanted, both long sweeps
+   running at roughly 41 degrees, an upper arm about a third of the width and a
+   waist notch a little wider than that. Six vertices - top point, down-left to
+   the waist, the notch, the bottom point, up the long right sweep, back in.
+   The viewBox is cropped to the glyph plus room for the stroke, so the marker
+   box and the drawn shape are the same size. */
+const BOLT_PATH = 'M264 8 L8 280 L124 280 L64 496 L344 224 L228 224 Z';
+const BOLT_SVG = '<svg viewBox="0 0 352 504" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
 /* The ring sits behind the glyph and expands from the strike point on arrival. */
 const RING_SPAN = '<span class="strike-ring"></span>';
 
@@ -187,7 +191,7 @@ function makeIcon(strike, fresh, arrive) {
   const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
   if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
-  const size = strike.type === 'cg' ? [15, 24] : [12, 19];
+  const size = strike.type === 'cg' ? [17, 24] : [13, 19];
   return L.divIcon({
     className: 'strike-icon',
     html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') + BOLT_SVG + '</div>',
