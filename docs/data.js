@@ -52,10 +52,11 @@ const CELLS = [
      basin out to sea is the classic summer pattern there, and it gives the
      default Sydney view something to show. */
   { name: 'Blue Mountains / Sydney',    lat: -33.72, lon: 149.9, driftLat: 0.25, driftLon: 1.35, spread: 0.45, weight: 0.70, cgBias: 1.2,
-    // Pinned rather than randomised: the map opens on Sydney at the newest end
-    // of the timeline, so this cell has to still be going when you land. Peaking
-    // at 82% through the window leaves it active but past its worst.
-    peak: 0.82, width: 0.30 }
+    // Pinned rather than randomised. The map opens on Sydney and autoplays from
+    // 08:00, so this cell has to have something to show at the top of the window
+    // and still be going at the end. A wide envelope centred mid-window gives
+    // activity throughout, peaking early afternoon.
+    peak: 0.50, width: 0.45 }
 ];
 
 /*

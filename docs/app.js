@@ -37,12 +37,15 @@ const RING_SPAN = '<span class="strike-ring"></span>';
 
 /* ---------------- state ---------------- */
 
-const endTime = Date.now();
-const startTime = endTime - WINDOW_MINUTES * MINUTE;
+/* The window is pinned to 08:00-20:00 today rather than the last 12 hours, so
+   the timeline reads the same whenever the page is opened. */
+const START_HOUR = 8;
+const startTime = new Date().setHours(START_HOUR, 0, 0, 0);
+const endTime = startTime + WINDOW_MINUTES * MINUTE;
 const strikes = LightningData.generateStrikes(endTime);
 
 const state = {
-  selectedMin: WINDOW_MINUTES,   // slider position, minutes from startTime
+  selectedMin: 0,                // slider position, minutes from startTime
   playing: false,
   speed: 1,
   radarOn: true
@@ -410,6 +413,9 @@ document.getElementById('legend-ic').innerHTML = '<span class="strike-marker str
 
 update();
 loadRadar();
+// Autoplay from the start of the window. rAF is throttled while the tab is in
+// the background, so this picks up properly whenever the page becomes visible.
+setPlaying(true);
 
 console.log('[lightning] generated', strikes.length, 'strikes over',
   LightningData.WINDOW_HOURS, 'h;',

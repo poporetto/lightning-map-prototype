@@ -116,9 +116,10 @@ two type colours would imply a scale between them.
 
 ## Timeline
 
-- 12 hours ending at page load, at 1-minute resolution.
-- Drag the slider, or press play. Playback loops back to the start when it
-  reaches the end.
+- Pinned to **08:00–20:00 today**, at 1-minute resolution, so the timeline reads
+  the same whenever the page is opened rather than trailing the clock.
+- **Autoplays from 08:00 on load.** Drag the slider or hit pause to take over;
+  playback loops back to the start when it reaches the end.
 - Speeds are minutes-of-data per second: 1× walks the full 12 h in about three
   minutes, so the 0–5 minute "fresh" band stays long enough to actually see the
   glow. 0.5× slows it further.
@@ -152,7 +153,7 @@ would need an archive feed.
 
 ## Mock data
 
-The map opens on Sydney at zoom 8, at the newest end of the timeline.
+The map opens on Sydney at zoom 8 and autoplays from the start of the window.
 
 `data.js` generates strikes from eight convective cells that migrate roughly
 W→E across the 12 hours, matching the reference imagery (Adelaide / Gulf St
@@ -162,9 +163,15 @@ Mountains and running east across the Sydney basin — the classic summer patter
 there, and what the default view is looking at.
 
 Every cell's activity envelope is randomised except the Sydney one, whose peak
-and width are pinned so it is still going when the map opens rather than having
-decayed by "now". Both random draws still happen for it, so overriding them
-cannot shift the sequence for the other cells. Each cell has an activity envelope
+and width are pinned to a wide envelope centred mid-window. Playback starts at
+08:00 and can be dragged to 20:00, so that cell needs to have something to show
+at both ends rather than only at its peak. Both random draws still happen for
+it, so overriding them cannot shift the sequence for the other cells.
+
+Note that the first few minutes of playback are sparse by construction: at
+08:00 there is no history behind the window start, so the trailing hour of
+strikes has to accumulate. It fills out within about 15 seconds of playback at
+1&times;. Each cell has an activity envelope
 that ramps up, peaks, and decays, and fires Poisson bursts within it — quiet
 stretches then flurries — with scatter elongated along the drift axis so cells
 read as streaks rather than blobs.
