@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Lightning Map Prototype — Australia</title>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="map"></div>
+
+  <!-- Top-left control panel -->
+  <div class="panel panel-tl">
+    <div class="panel-title">Lightning tracker <span class="badge">prototype</span></div>
+
+    <div class="control-row">
+      <span class="control-label">Base map</span>
+      <div class="segmented" id="basemap-toggle">
+        <button data-basemap="grey" class="is-active">Grey</button>
+        <button data-basemap="satellite">Satellite</button>
+      </div>
+    </div>
+
+    <div class="control-row">
+      <span class="control-label">Rain radar</span>
+      <label class="switch">
+        <input type="checkbox" id="radar-toggle" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
+    </div>
+
+    <div class="control-row radar-status" id="radar-status">Loading radar…</div>
+
+    <div class="legend">
+      <div class="legend-title">Strike type</div>
+      <div class="legend-item">
+        <span class="legend-icon" id="legend-cg"></span>
+        <span>Cloud&#8209;to&#8209;ground <em id="count-cg">0</em></span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-icon" id="legend-ic"></span>
+        <span>Cloud (intra&#8209;cloud) <em id="count-ic">0</em></span>
+      </div>
+
+      <div class="legend-title">Strike age <span class="muted">(fades out after 60&nbsp;min)</span></div>
+      <div class="age-ramp">
+        <span style="opacity:1"></span>
+        <span style="opacity:.85"></span>
+        <span style="opacity:.65"></span>
+        <span style="opacity:.45"></span>
+      </div>
+      <div class="age-scale"><span>now</span><span>15m</span><span>30m</span><span>60m</span></div>
+    </div>
+  </div>
+
+  <!-- Bottom timeline -->
+  <div class="timeline">
+    <button id="play" class="play-btn" aria-label="Play timeline">
+      <svg viewBox="0 0 24 24" class="icon-play"><path d="M8 5.5v13l11-6.5z"/></svg>
+      <svg viewBox="0 0 24 24" class="icon-pause"><path d="M7 5h3.2v14H7zm6.8 0H17v14h-3.2z"/></svg>
+    </button>
+
+    <div class="timeline-main">
+      <input type="range" id="slider" min="0" max="720" step="1" value="720">
+      <div class="timeline-meta">
+        <span id="range-start">—</span>
+        <span class="time-pill" id="time-pill">—</span>
+        <span id="range-end">—</span>
+      </div>
+    </div>
+
+    <div class="speed">
+      <label for="speed-select">Speed</label>
+      <select id="speed-select">
+        <option value="0.5">0.5×</option>
+        <option value="1" selected>1×</option>
+        <option value="2">2×</option>
+        <option value="4">4×</option>
+      </select>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
