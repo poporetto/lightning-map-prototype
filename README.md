@@ -101,6 +101,16 @@ read as streaks rather than blobs.
 The PRNG is seeded, so the data is identical on every reload. Change the seed in
 `generateStrikes(endTime, seed)` for a different storm.
 
+## Icon licence
+
+The bolt glyph is Font Awesome Free 6.5.2. Font Awesome Free is licensed for
+commercial use: **icons under CC BY 4.0**, fonts under SIL OFL 1.1, code under
+MIT. CC BY 4.0 requires attribution, which is why the copyright line stays in
+the comment above the path in `app.js`. The credit also belongs somewhere
+user-visible in a shipped product (an about screen or a colophon is enough).
+
+Only the path data is inlined — no Font Awesome CSS or webfont is loaded.
+
 ## Base maps
 
 Both are key-free: **Esri Dark Gray Canvas** for the grey view (with a separate
