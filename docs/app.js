@@ -44,8 +44,12 @@ const startTime = new Date().setHours(START_HOUR, 0, 0, 0);
 const endTime = startTime + WINDOW_MINUTES * MINUTE;
 const strikes = LightningData.generateStrikes(endTime);
 
+/* Playback opens slightly into the window rather than at 08:00 flat, since
+   nothing exists behind the window start for the trailing hour to draw on. */
+const OPEN_AT_MIN = 15;
+
 const state = {
-  selectedMin: 0,                // slider position, minutes from startTime
+  selectedMin: OPEN_AT_MIN,      // slider position, minutes from startTime
   playing: false,
   speed: 1,
   radarOn: true

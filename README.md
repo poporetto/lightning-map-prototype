@@ -118,8 +118,9 @@ two type colours would imply a scale between them.
 
 - Pinned to **08:00–20:00 today**, at 1-minute resolution, so the timeline reads
   the same whenever the page is opened rather than trailing the clock.
-- **Autoplays from 08:00 on load.** Drag the slider or hit pause to take over;
-  playback loops back to the start when it reaches the end.
+- **Autoplays on load**, opening 15 minutes into the window (`OPEN_AT_MIN`).
+  Drag the slider or hit pause to take over; playback loops back to 08:00 when
+  it reaches the end.
 - Speeds are minutes-of-data per second: 1× walks the full 12 h in about three
   minutes, so the 0–5 minute "fresh" band stays long enough to actually see the
   glow. 0.5× slows it further.
@@ -168,10 +169,11 @@ and width are pinned to a wide envelope centred mid-window. Playback starts at
 at both ends rather than only at its peak. Both random draws still happen for
 it, so overriding them cannot shift the sequence for the other cells.
 
-Note that the first few minutes of playback are sparse by construction: at
-08:00 there is no history behind the window start, so the trailing hour of
-strikes has to accumulate. It fills out within about 15 seconds of playback at
-1&times;. Each cell has an activity envelope
+Note that the opening is sparse by construction: nothing exists behind the
+window start, so the trailing hour of strikes has to accumulate before the map
+looks busy. `OPEN_AT_MIN` starts playback 15 minutes in, which is still only a
+handful of strikes; the view fills out within about 15 seconds of playback at
+1&times;. Raise `OPEN_AT_MIN` if you want it to open mid-storm instead. Each cell has an activity envelope
 that ramps up, peaks, and decays, and fires Poisson bursts within it — quiet
 stretches then flurries — with scatter elongated along the drift axis so cells
 read as streaks rather than blobs.
