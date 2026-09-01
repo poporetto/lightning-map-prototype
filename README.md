@@ -64,17 +64,22 @@ the window does not re-flash strikes that were already old.
 
 ## Rain radar
 
-BOM does not publish a documented, CORS-open tile endpoint for third-party use —
-their own viewer consumes internal endpoints — so the default source is
-**RainViewer**, which is free, CORS-open, and serves the BOM radar network over
-Australia. The source lives in one config object in `app.js`:
+**This is not BOM's radar layer.** BOM's own map is served from
+`https://api.bom.gov.au/apikey/v1/mapping/...` — an ArcGIS MapServer behind an
+API key, with no CORS headers for third-party origins (fetching it cross-origin
+from this prototype fails outright). There is no documented public tile endpoint
+to point at.
+
+The default source is therefore **RainViewer**, which is free, CORS-open, and
+covers Australia. Its Australian composite is not verified to be BOM data. The
+source lives in one config object in `app.js`:
 
 ```js
 const RADAR_SOURCE = { name: '…', index: 'https://api.rainviewer.com/public/weather-maps.json' };
 ```
 
-Anything that can produce `{ frames: [{ time, url }] }` will drop straight in,
-including a BOM endpoint if you have one that serves the right headers.
+Anything that can produce `{ frames: [{ time, url }] }` drops straight in — a
+BOM API key and its MapServer tile URL included, if you can obtain one.
 
 **Known gap:** free radar history is roughly the last 2 hours at ~10-minute
 spacing, which is much shorter than the 12-hour strike timeline. The radar

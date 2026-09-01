@@ -94,13 +94,15 @@ labelLayer.addTo(map);
 ------------------------------------------------------------------------- */
 
 const RADAR_SOURCE = {
-  name: 'RainViewer (BOM radar network)',
+  name: 'RainViewer composite',
   index: 'https://api.rainviewer.com/public/weather-maps.json'
 };
 
 let radarFrames = [];        // [{ time (ms), url }]
 let radarLayer = null;
 let radarFrameIndex = -1;
+let lastRadarSwap = 0;
+const RADAR_SWAP_MIN_MS = 400;   // fast playback would otherwise refetch tiles constantly
 const radarStatusEl = document.getElementById('radar-status');
 
 async function loadRadar() {
@@ -121,8 +123,9 @@ async function loadRadar() {
     radarStatusEl.classList.remove('is-error');
     radarStatusEl.innerHTML =
       RADAR_SOURCE.name + ' &middot; ' + radarFrames.length + ' frames back to ' +
-      fmtTime(oldest) + '.<br>Radar history is shorter than the 12&#8239;h strike ' +
-      'timeline, so it holds on the oldest frame before then.';
+      fmtTime(oldest) + '.<br>Not BOM &mdash; BOM\u2019s own tiles need an API key. ' +
+      'Radar history is shorter than the 12&#8239;h strike timeline, so it holds ' +
+      'on the oldest frame before then.';
     applyRadar();
   } catch (err) {
     radarFrames = [];
@@ -144,6 +147,9 @@ function applyRadar() {
     if (Math.abs(radarFrames[i].time - t) < Math.abs(radarFrames[best].time - t)) best = i;
   }
   if (best === radarFrameIndex && radarLayer) return;
+  const now = performance.now();
+  if (radarLayer && now - lastRadarSwap < RADAR_SWAP_MIN_MS) return;
+  lastRadarSwap = now;
   radarFrameIndex = best;
 
   const next = L.tileLayer(radarFrames[best].url, {
@@ -228,8 +234,10 @@ function renderStrikes() {
     } else if (entry.fresh && !style.fresh) {
       // Aged out of the "fresh" band — drop the glow without rebuilding.
       const inner = entry.marker.getElement() && entry.marker.getElement().firstElementChild;
-      if (inner) inner.classList.remove('strike-fresh', 'strike-arrive');
-      entry.fresh = false;
+      if (inner) {
+        inner.classList.remove('strike-fresh', 'strike-arrive');
+        entry.fresh = false;
+      }
     }
 
     if (entry.opacity !== style.opacity) {
@@ -331,7 +339,7 @@ function setPlaying(on) {
   playBtn.classList.toggle('is-playing', on);
   playBtn.setAttribute('aria-label', on ? 'Pause timeline' : 'Play timeline');
   if (on) {
-    // Restarting from the end replays the whole window.
+    // Pressing play while parked at the end replays the whole window.
     if (state.selectedMin >= WINDOW_MINUTES) state.selectedMin = 0;
     lastFrameTs = performance.now();
     rafId = requestAnimationFrame(tick);
@@ -348,12 +356,13 @@ function tick(ts) {
   lastFrameTs = ts;
   state.selectedMin += dt * SPEED_MIN_PER_SEC * state.speed;
   if (state.selectedMin >= WINDOW_MINUTES) {
+    // Show the final frame, then loop back to the start of the 12 h window.
     state.selectedMin = WINDOW_MINUTES;
     update();
-    setPlaying(false);
-    return;
+    state.selectedMin = 0;
+  } else {
+    update();
   }
-  update();
   rafId = requestAnimationFrame(tick);
 }
 
