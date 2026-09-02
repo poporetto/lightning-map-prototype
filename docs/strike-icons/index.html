@@ -16,6 +16,22 @@
     border:1px solid rgba(255,255,255,.16); border-radius:7px;
     padding:6px 13px; font:inherit; font-size:12.5px; cursor:pointer; }
   code { background:rgba(255,255,255,.09); padding:1px 5px; border-radius:4px; font-size:12px; }
+
+  .doc { max-width:760px; margin-top:44px; border-top:1px solid rgba(255,255,255,.12); padding-top:26px; }
+  .doc h2 { font-size:13.5px; margin:30px 0 8px; }
+  .doc h2:first-child { margin-top:0; }
+  .doc p, .doc li { color:#c3ccd6; font-size:13px; margin:0 0 12px; }
+  .doc ul { margin:0 0 12px; padding-left:20px; }
+  .doc li { margin-bottom:6px; }
+  .doc b { color:#fff; }
+  pre { background:#22262b; border:1px solid rgba(255,255,255,.10); border-radius:8px;
+    padding:13px 15px; overflow-x:auto; font-size:12px; line-height:1.55;
+    color:#dbe3ec; margin:0 0 14px; }
+  table { border-collapse:collapse; margin:0 0 14px; font-size:12.5px; }
+  th, td { text-align:left; padding:6px 22px 6px 0; border-bottom:1px solid rgba(255,255,255,.09); }
+  th { color:#9aa4b1; font-weight:600; font-size:11px; text-transform:uppercase; letter-spacing:.6px; }
+  td { color:#c3ccd6; }
+  .note { border-left:2px solid #7db3ff; padding-left:13px; }
 </style>
 </head>
 <body>
@@ -61,5 +77,122 @@ const play = () => ['a', 'b'].forEach(id => arrive(document.getElementById(id)))
 document.getElementById('play').addEventListener('click', play);
 play();
 </script>
+<section class="doc">
+
+<h2>Files</h2>
+<table>
+  <tr><th>File</th><th>Required</th><th></th></tr>
+  <tr><td><code>lightning-orange.svg</code></td><td>yes</td><td>Ground strike</td></tr>
+  <tr><td><code>lightning-blue.svg</code></td><td>yes</td><td>Cloud strike</td></tr>
+  <tr><td><code>lightning-mask.svg</code></td><td>yes</td><td>Clips the white arrival flash to the bolt shape</td></tr>
+  <tr><td><code>strike-icons.css</code></td><td>yes</td><td>All styling and animation</td></tr>
+  <tr><td><code>index.html</code></td><td>no</td><td>This demo</td></tr>
+</table>
+<p>Keep them in one folder — the CSS reaches <code>lightning-mask.svg</code> by relative path.
+Drop <code>lightning-mask.svg</code> and the icons still render, but the white flash will not.</p>
+
+<h2>Markup</h2>
+<pre>&lt;link rel="stylesheet" href="strike-icons.css"&gt;
+
+&lt;span class="strike strike-orange"&gt;
+  &lt;span class="strike-ring"&gt;&lt;/span&gt;
+  &lt;span class="strike-glyph"&gt;&lt;img src="lightning-orange.svg" alt=""&gt;&lt;/span&gt;
+&lt;/span&gt;</pre>
+<p>Both inner spans are needed. <code>.strike-glyph</code> wraps the image so the drop animation
+and the white flash move together; <code>.strike-ring</code> stays outside it so the shockwave
+stays pinned to the strike point instead of being dragged down with the icon. Omit
+<code>.strike-ring</code> if you do not want the ring.</p>
+<p>The colour class is required. The body colour comes from the SVG file, but
+<code>.strike-orange</code> / <code>.strike-blue</code> supply the ring colour, the glow colour, and
+which point the icon anchors to.</p>
+
+<h2>Opacity — how old a strike is</h2>
+<p><b>Your code sets this, not the CSS.</b> Opacity depends on how far the strike is from
+the time you are showing, and CSS has no way to know that. Set it on the outer
+<code>.strike</code> element.</p>
+<p>Age is measured against <b>the time currently being displayed</b>, not the wall clock, so
+scrubbing backwards through a timeline behaves the same as playing forwards.</p>
+<table>
+  <tr><th>Age</th><th>Opacity</th></tr>
+  <tr><td>0–5 min</td><td>100%</td></tr>
+  <tr><td>15 min</td><td>85%</td></tr>
+  <tr><td>30 min</td><td>65%</td></tr>
+  <tr><td>60 min</td><td>45%</td></tr>
+  <tr><td>over 60 min</td><td>hidden — remove the element</td></tr>
+</table>
+<p>Those four are anchor points, hit exactly at their own boundary. Values in between are
+interpolated, so a strike fades <b>continuously</b> rather than snapping down in four steps.
+Quantising to 1% stops you restyling every element on every frame.</p>
+<pre>const AGE_STOPS = [
+  { min: 5,  opacity: 1.00 },
+  { min: 15, opacity: 0.85 },
+  { min: 30, opacity: 0.65 },
+  { min: 60, opacity: 0.45 }
+];
+
+// null means do not show it at all: too old, or still in the future.
+function ageOpacity(ageMin) {
+  if (ageMin &lt; 0 || ageMin &gt;= 60) return null;
+  if (ageMin &lt;= 5) return 1;
+  for (let i = 1; i &lt; AGE_STOPS.length; i++) {
+    const from = AGE_STOPS[i - 1], to = AGE_STOPS[i];
+    if (ageMin &lt;= to.min) {
+      const t = (ageMin - from.min) / (to.min - from.min);
+      return Math.round((from.opacity + (to.opacity - from.opacity) * t) * 100) / 100;
+    }
+  }
+  return null;
+}</pre>
+
+<h2>The two glows — and why only the newest icons animate</h2>
+<p>There are two, doing different jobs. Keeping them straight is the whole design.</p>
+<ul>
+  <li><b><code>.strike-arrive</code> — the animation.</b> Ring, drop and white flash, about 2.9
+    seconds, then over. Add it <b>only to strikes that landed on the tick you are currently
+    rendering</b> — the newest timestamp. Not to everything that happens to be young.</li>
+  <li><b><code>.strike-fresh</code> — the static halo.</b> A steady glow, nothing animating.
+    Hold it for as long as the strike is <b>under 5 minutes old</b>, then drop it.</li>
+</ul>
+<p class="note">Why the animation is restricted to the newest timestamp: if you animated
+everything under 5 minutes old, then every time the clock moved you would re-fire dozens of
+animations at once, and a user jumping the timeline would trigger hundreds simultaneously.
+That is noise, not information. The animation answers <i>"this just happened"</i>; the halo
+answers <i>"this is recent"</i>.</p>
+<p>The halo is also the only thing that <i>can</i> answer the second question. Look at the ramp
+above: opacity sits flat at 100% for the whole 0–5 minute band, so a strike from 10 seconds ago
+and one from 5 minutes ago are pixel-identical. Without the halo, a strike you did not watch
+arrive is indistinguishable from one about to age out of the band.</p>
+<p>The animation's final keyframe is the halo, so when <code>.strike-arrive</code> comes off, a
+still-fresh strike carries straight on with nothing visibly changing.</p>
+
+<h2>Driving it</h2>
+<pre>// Every time the clock moves, for each strike on screen:
+const ageMin = (displayedTime - strike.time) / 60000;
+const opacity = ageOpacity(ageMin);
+if (opacity === null) { remove(el); return; }   // too old, or in the future
+
+el.style.opacity = opacity;
+el.classList.toggle('strike-fresh', ageMin &lt;= 5);
+
+// Only when the element is first created, and only if the strike landed
+// within this tick — that is what keeps the animation to the newest icons.
+if (isNewElement &amp;&amp; strike.time &gt; previousTickTime) {
+  el.classList.add('strike-arrive');
+  el.addEventListener('animationend', ev =&gt; {
+    // strike-bloom is the longest of the four, so it finishes last.
+    if (ev.animationName === 'strike-bloom') el.classList.remove('strike-arrive');
+  });
+}</pre>
+<p>Let the animation remove its own class on <code>animationend</code> rather than clearing it on
+a timer. It runs longer than 5 minutes of data does at most playback speeds, so cancelling it
+when the strike ages would cut it off mid-flash.</p>
+<p>If a user jumps the timeline by more than a few minutes, skip <code>.strike-arrive</code>
+entirely for that render — a jump mounts a whole backlog at once, and none of it "just
+happened".</p>
+<p><code>prefers-reduced-motion</code> is handled in the CSS: the animation is skipped, the halo
+still applies.</p>
+
+</section>
+
 </body>
 </html>
