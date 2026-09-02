@@ -21,7 +21,8 @@
 <body>
 
 <h1>Lightning strike icons</h1>
-<p>Icons are <code>&lt;img&gt;</code> references to the SVG files — nothing is inlined. 15&times;20&nbsp;px.</p>
+<p>Icons are <code>&lt;img&gt;</code> references to the SVG files — nothing is inlined. 15&times;20&nbsp;px.<br>
+The colour class is still required: it sets the ring colour, the halo colour, and which point the icon is anchored to.</p>
 
 <div class="row">
   <span class="label">Resting — <code>.strike</code></span>
@@ -40,13 +41,6 @@
   <span class="strike strike-orange" id="a"><span class="strike-ring"></span><span class="strike-glyph"><img src="lightning-orange.svg" alt=""></span></span>
   <span class="strike strike-blue" id="b"><span class="strike-ring"></span><span class="strike-glyph"><img src="lightning-blue.svg" alt=""></span></span>
   <button id="play">Replay</button>
-</div>
-
-<div class="row">
-  <span class="label">Other colours — swap the <code>src</code></span>
-  <span class="strike strike-purple"><span class="strike-glyph"><img src="lightning-purple.svg" alt="Intra-cloud strike, purple"></span></span>
-  <span class="strike strike-amber"><span class="strike-glyph"><img src="lightning-amber.svg" alt="Cloud-to-ground strike, amber"></span></span>
-  <span class="strike strike-steel"><span class="strike-glyph"><img src="lightning-steel.svg" alt="Intra-cloud strike, steel"></span></span>
 </div>
 
 <script>

@@ -233,8 +233,8 @@ html, body {
 .strike-glyph::after {
   content: ""; position: absolute; inset: 0;
   background: #fff; opacity: 0; pointer-events: none;
-  -webkit-mask: url(strike-icons/lightning-mask.svg) center / contain no-repeat;
-          mask: url(strike-icons/lightning-mask.svg) center / contain no-repeat;
+  -webkit-mask: url(icons/lightning-mask.svg) center / contain no-repeat;
+          mask: url(icons/lightning-mask.svg) center / contain no-repeat;
 }
 
 /* Scale from the point the strike actually hits, so it stays put while the

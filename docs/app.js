@@ -46,7 +46,7 @@ const SPEED_MIN_PER_SEC = 4;
    recolouring means swapping the file — hence one SVG per colour. Each palette
    names the pair it uses. See strike-icons/strike-icons.css for the details
    this forces on the arrival animation. */
-const ICON_DIR = 'strike-icons/';
+const ICON_DIR = 'icons/';
 const ICON_SETS = {
   blue:   { cg: 'lightning-orange.svg', ic: 'lightning-blue.svg' },
   purple: { cg: 'lightning-orange.svg', ic: 'lightning-purple.svg' },

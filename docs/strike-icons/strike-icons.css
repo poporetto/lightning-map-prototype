@@ -14,6 +14,13 @@
      .strike-fresh    static halo — hold it while the strike is recent
      .strike-arrive   arrival     — add once, remove on animationend
 
+   ---- What the colour class does ----
+   The body colour comes from the SVG file, so .strike-orange / .strike-blue are
+   not setting it. They are still required, for three things: the ring's stroke
+   colour, the halo colour, and which point the icon is anchored to. Drop the
+   class and you get a bare fallback for the first two and centre anchoring for
+   the third.
+
    ---- Why the extra .strike-glyph wrapper ----
    The icon is an <img>, so CSS cannot reach the path inside it: fill and stroke
    are fixed by the file. Two things fall out of that.
@@ -29,11 +36,9 @@
    because they follow its alpha channel.
    ========================================================================= */
 
+/* Structure only — no colour, so the colour class below is genuinely required
+   rather than silently shadowed by a default. */
 .strike {
-  /* Rim and halo only. The body colour lives in the SVG file itself. */
-  --c2:   #ffe27a;                     /* ring stroke      */
-  --halo: rgba(255, 226, 122, .8);     /* glow while fresh */
-
   /* 23:31 is the artwork's aspect ratio — 15x20 keeps it, near enough. */
   --w: 15px;
   --h: 20px;
@@ -44,17 +49,23 @@
   height: var(--h);
 }
 
+/* Ground strike. Anchored at the bolt tip, because a ground strike terminates
+   at a point on the ground and that point is what the icon marks. */
 .strike-orange { --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
-.strike-blue   { --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
-.strike-purple { --c2: #d7bcff; --halo: rgba(215, 188, 255, .8); }
-.strike-amber  { --c2: #fff0b8; --halo: rgba(255, 240, 184, .9); }
-.strike-steel  { --c2: #cfe4f2; --halo: rgba(207, 228, 242, .7); }
+.strike-orange .strike-glyph { transform-origin: 50% 100%; }
+.strike-orange .strike-ring  { top: 100%; }
 
+/* Cloud strike. Centred, because an intra-cloud discharge has no ground
+   contact point. */
+.strike-blue { --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
 .strike-glyph {
   position: absolute; inset: 0;
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
   /* Eases every handover between arrival, halo and rest so none of them pops. */
   transition: filter .45s ease-out;
+  /* Scale from the point the strike hits, so it holds still while the glyph
+     grows. Overridden to the bolt tip for ground strikes above. */
+  transform-origin: 50% 50%;
 }
 .strike-glyph img { width: 100%; height: 100%; display: block; }
 
@@ -68,18 +79,12 @@
           mask: url(lightning-mask.svg) center / contain no-repeat;
 }
 
-/* Scale from the point the strike actually hits, so it holds still while the
-   glyph grows. Orange and amber are ground strikes, anchored at the bolt tip. */
-.strike-glyph { transform-origin: 50% 50%; }
-.strike-orange .strike-glyph,
-.strike-amber  .strike-glyph { transform-origin: 50% 100%; }
-
 /* ---------------------------------------------------------------------------
    The state — held, unanimated, while a strike is recent.
    Opacity alone cannot express recency: if you fade strikes by age, the top of
    that ramp is flat, so the newest and the nearly-expired look identical.
    ------------------------------------------------------------------------ */
-.strike-fresh .strike-glyph { filter: drop-shadow(0 0 4px var(--halo)); }
+.strike-fresh .strike-glyph { filter: drop-shadow(0 0 4px var(--halo, rgba(255, 255, 255, .7))); }
 
 /* ---------------------------------------------------------------------------
    The moment — fires once, on arrival. About 2.9s end to end.
@@ -96,11 +101,9 @@
 .strike-ring {
   position: absolute; left: 50%; top: 50%;
   width: 12px; height: 12px; margin: -6px 0 0 -6px;
-  border-radius: 50%; border: 2px solid var(--c2);
+  border-radius: 50%; border: 2px solid var(--c2, #a8d5ff);
   opacity: 0; pointer-events: none;
 }
-.strike-orange .strike-ring,
-.strike-amber  .strike-ring { top: 100%; }
 
 /* The drop rides on .strike-glyph, not the outer wrapper, so the ring stays
    pinned to the strike point instead of being dragged down with the icon. Two
@@ -131,7 +134,7 @@
 @keyframes strike-bloom {
   0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
   28%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
-  60%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
+  60%, 100% { filter: drop-shadow(0 0 4px var(--halo, rgba(255, 255, 255, .7))); }
 }
 
 /* No arrival animation, but the halo still applies — it is state, not motion. */

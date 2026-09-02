@@ -23,7 +23,8 @@ then visit http://localhost:5178
 | `docs/icon-options.html` | Throwaway: intra-cloud glyph comparison |
 | `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
 | `docs/halo-vs-opacity.html` | Throwaway: static halo vs opacity-only comparison |
-| `docs/strike-icons/` | The icon files themselves, plus a standalone CSS file and demo page |
+| `docs/icons/` | The map's icon files — one SVG per palette colour, plus the flash mask |
+| `docs/strike-icons/` | Standalone handoff pack: orange and blue only, its own CSS and demo |
 
 Everything lives in `docs/` so GitHub Pages can serve it directly — set
 **Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder
@@ -205,8 +206,8 @@ None to observe. The bolt is original artwork supplied for this project —
 `lightning.svg` in the repo root is the source shape. No icon set is involved and
 nothing needs attributing.
 
-Markers reference the recoloured copies in `docs/strike-icons/` as `<img>`, not
-as inlined SVG. That is a deliberate constraint, and it costs two things:
+Markers reference the recoloured copies in `docs/icons/` as `<img>`, not as
+inlined SVG. That is a deliberate constraint, and it costs two things:
 
 - **Recolouring means swapping the file.** CSS cannot reach the path inside an
   `<img>`, so there is one SVG per colour and the palette switcher repoints every
@@ -217,6 +218,15 @@ as inlined SVG. That is a deliberate constraint, and it costs two things:
 
 The halo and drop shadow are unaffected — `drop-shadow` follows an image's alpha
 channel, so it traces the bolt outline exactly as it did with inline SVG.
+
+`docs/strike-icons/` is a separate, self-contained handoff pack carrying only
+orange and blue. The map keeps its own full set in `docs/icons/` so the pack does
+not have to ship palettes it never uses; the two orange/blue files are duplicated
+between them, so a change to the artwork needs applying in both.
+
+A colour class (`.strike-orange` / `.strike-blue`) is still required even though
+the body colour now comes from the file. It supplies the ring stroke colour, the
+halo colour, and which point the icon anchors to.
 
 This replaced Font Awesome. FA Free is fine for commercial use, but its icons are
 CC BY 4.0, which requires attribution — and the popular alternatives only lighten
