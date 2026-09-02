@@ -61,17 +61,28 @@ Because anything older than 60 minutes is hidden, only a fraction of the
 peak). Markers are mounted and unmounted as that window slides, rather than all
 being created up front.
 
-## The arrival animation
+## New strikes: the moment and the state
 
-A strike animates **only on the step of the timeline it actually lands on** —
-the newest timestamp — not for as long as it is young. Over about 2.9 seconds a
+A new strike is signalled in two separate registers, because a one-shot
+animation only helps if you happened to be looking at that pixel when it fired.
+
+**The state.** For as long as a strike is under 5 minutes old it holds a
+**static halo** — unanimated, so nothing loops. The opacity ramp cannot carry
+this on its own: it sits flat at 100% across the whole 0–5 minute band, which
+leaves a 10-second-old strike and a 5-minute-old one pixel-identical, and a
+7-minute-old one only 4% dimmer. `halo-vs-opacity.html` shows the two side by
+side.
+
+**The moment.** A strike animates **only on the step of the timeline it actually
+lands on** — the newest timestamp — not for as long as it is young. Over about 2.9 seconds a
 ring expands outward from the strike point (its motion is far larger than the
 glyph, so it reads even where the marker is buried under neighbours), while the
 bolt drops a few pixels into place, white-hot, and cools to its type colour.
 
-Once it has played out the marker is plain again, carrying nothing but its age
-opacity. Every keyframe ends on the marker's resting appearance, so dropping the
-class at the end is invisible.
+The animation settles onto the same halo the fresh state holds, so when the
+class is dropped a still-fresh strike carries straight on unchanged. A
+`transition: filter` on the marker eases every handover — arrival to halo, halo
+to resting shadow — so none of the swaps reads as a pop.
 
 The animation is pure CSS — four `@keyframes` rules in `styles.css`. JavaScript
 only adds a class on arrival and removes it on `animationend`; it never touches

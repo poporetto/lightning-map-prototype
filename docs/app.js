@@ -19,6 +19,10 @@ const AGE_STOPS = [
   { min: 60, opacity: 0.45 }
 ];
 const MAX_AGE_MIN = AGE_STOPS[AGE_STOPS.length - 1].min;
+/* Under this age a strike holds a static halo. It matches the first anchor
+   because that is exactly the span the opacity ramp cannot distinguish — it
+   sits flat at 100% throughout. */
+const FRESH_MIN = AGE_STOPS[0].min;
 
 function ageOpacity(ageMin) {
   if (ageMin < 0 || ageMin >= MAX_AGE_MIN) return null;   // future, or aged out
@@ -203,8 +207,9 @@ function lowerBound(t) {
   return lo;
 }
 
-function makeIcon(strike, arrive) {
+function makeIcon(strike, arrive, fresh) {
   const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
+  if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
   const size = strike.type === 'cg' ? [18, 24] : [14, 19];
   return L.divIcon({
@@ -240,8 +245,10 @@ function renderStrikes() {
 
   for (let i = from; i < to; i++) {
     const s = strikes[i];
-    const opacity = ageOpacity((t - s.time) / MINUTE);
+    const ageMin = (t - s.time) / MINUTE;
+    const opacity = ageOpacity(ageMin);
     if (opacity === null) continue;
+    const fresh = ageMin <= FRESH_MIN;
 
     seen.add(s.id);
     if (s.type === 'cg') cg++; else ic++;
@@ -254,7 +261,7 @@ function renderStrikes() {
       const arrive = !jumped && s.time > lastRenderTime;
 
       const marker = L.marker([s.lat, s.lon], {
-        icon: makeIcon(s, arrive),
+        icon: makeIcon(s, arrive, fresh),
         keyboard: false,
         riseOnHover: true,
         interactive: true
@@ -262,9 +269,9 @@ function renderStrikes() {
       marker.bindPopup(popupHtml(s), { className: 'strike-popup', closeButton: false, offset: [0, -8] });
       marker.addTo(strikeLayer);
 
-      // Once the arrival has played out the marker is plain again, carrying
-      // nothing but its age opacity. The animation drops its own class on
-      // animationend so ageing can never cut it off part-way through.
+      // The arrival ends on the same halo the fresh state holds, so dropping
+      // the class hands over invisibly. It drops its own class on animationend
+      // so ageing can never cut the animation off part-way through.
       if (arrive) {
         const el = marker.getElement();
         const inner = el && el.firstElementChild;
@@ -273,8 +280,14 @@ function renderStrikes() {
         });
       }
 
-      entry = { marker, opacity: -1 };
+      entry = { marker, opacity: -1, fresh };
       mounted.set(s.id, entry);
+    } else if (entry.fresh !== fresh) {
+      const inner = entry.marker.getElement() && entry.marker.getElement().firstElementChild;
+      if (inner) {
+        inner.classList.toggle('strike-fresh', fresh);
+        entry.fresh = fresh;
+      }
     }
 
     if (entry.opacity !== opacity) {
