@@ -23,6 +23,7 @@ then visit http://localhost:5178
 | `docs/icon-options.html` | Throwaway: intra-cloud glyph comparison |
 | `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
 | `docs/halo-vs-opacity.html` | Throwaway: static halo vs opacity-only comparison |
+| `docs/strike-icons/` | Standalone icon bundle — two SVGs, one CSS file, a demo page |
 
 Everything lives in `docs/` so GitHub Pages can serve it directly — set
 **Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder

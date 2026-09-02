@@ -1,0 +1,120 @@
+/* ============================================================================
+   Lightning strike icons — standalone styling
+   ----------------------------------------------------------------------------
+   Self-contained: no build step, no dependencies, nothing outside this file.
+
+   Markup, per strike:
+
+     <span class="strike strike-orange">
+       <span class="strike-ring"></span>
+       <svg viewBox="0 0 23 31"><path d="…"/></svg>
+     </span>
+
+   Add classes to change state:
+     .strike-fresh    static halo   — hold it while the strike is recent
+     .strike-arrive   arrival       — add once on arrival, remove on animationend
+
+   The <svg> must be INLINE in the HTML, not an <img src="lightning-orange.svg">.
+   The white-hot flash animates the path's fill, and CSS cannot reach inside an
+   image. The two .svg files in this folder have their colours baked in for use
+   as plain images where no animation is needed.
+   ========================================================================= */
+
+.strike {
+  /* Palette. Override these on .strike (or any ancestor) for other colours. */
+  --c:     #ffb020;                    /* body   */
+  --c2:    #ffe27a;                    /* rim    */
+  --halo:  rgba(255, 226, 122, .8);    /* glow while fresh */
+
+  /* 23:31 is the artwork's aspect ratio — keep it or the glyph letterboxes. */
+  --w: 18px;
+  --h: 24px;
+
+  position: relative;
+  display: inline-block;
+  width: var(--w);
+  height: var(--h);
+}
+
+.strike-orange { --c: #ffb020; --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
+.strike-blue   { --c: #4da6ff; --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
+
+.strike svg {
+  width: 100%; height: 100%; display: block;
+  filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
+  /* Eases every handover between arrival, halo and rest so none of them pops. */
+  transition: filter .45s ease-out;
+}
+.strike svg path {
+  fill: var(--c); stroke: var(--c2); stroke-width: .9;
+  stroke-linejoin: round; stroke-linecap: round;
+}
+
+/* Scale from the point the strike actually hits, so it holds still while the
+   glyph grows. Orange is a ground strike, so it is anchored at the bolt tip. */
+.strike-orange svg { transform-origin: 50% 100%; }
+.strike-blue   svg { transform-origin: 50% 50%; }
+
+/* ---------------------------------------------------------------------------
+   The state — held, unanimated, while a strike is recent.
+   Opacity alone cannot express recency: if you fade strikes by age, the top of
+   that ramp is flat, so the newest and the nearly-expired look identical.
+   ------------------------------------------------------------------------ */
+.strike-fresh svg { filter: drop-shadow(0 0 4px var(--halo)); }
+
+/* ---------------------------------------------------------------------------
+   The moment — fires once, on arrival. About 2.9s end to end.
+   Every keyframe ends where the state above starts, so removing .strike-arrive
+   hands over to .strike-fresh invisibly.
+   ------------------------------------------------------------------------ */
+
+/* The ring expands from the strike point, so it is anchored to the bolt tip for
+   ground strikes and to the centre for cloud strikes. */
+.strike-ring {
+  position: absolute; left: 50%; top: 100%;
+  width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  border-radius: 50%; border: 2px solid var(--c2);
+  opacity: 0; pointer-events: none;
+}
+.strike-blue .strike-ring { top: 50%; }
+
+/* The drop rides on the <svg>, not the wrapper, so the ring stays pinned to the
+   strike point instead of being dragged down with the glyph. Two animations on
+   one element is fine — they touch different properties. */
+.strike-arrive svg {
+  animation: strike-drop 1.0s cubic-bezier(.22, 1, .36, 1) both,
+             strike-bloom 2.9s ease-out both;
+}
+.strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
+.strike-arrive svg path     { animation: strike-cool 2.4s ease-out both; }
+
+/* Falls a few pixels into place as it lands — enough to read as downward
+   motion, not so much that it looks like the marker is in the wrong spot. */
+@keyframes strike-drop {
+  0%   { transform: translateY(-5px) scale(1.35); opacity: 0; }
+  30%  { opacity: 1; }
+  55%  { transform: translateY(0) scale(1.06); }
+  100% { transform: translateY(0) scale(1); opacity: 1; }
+}
+@keyframes strike-shock {
+  0%   { transform: scale(.4); opacity: .95; border-width: 2px; }
+  100% { transform: scale(6); opacity: 0; border-width: .5px; }
+}
+@keyframes strike-cool {
+  0%, 24% { fill: #fff; stroke: #fff; }
+  100%    { fill: var(--c); stroke: var(--c2); }
+}
+@keyframes strike-bloom {
+  0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
+  28%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
+  60%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
+}
+
+/* No arrival animation, but the halo still applies — it is state, not motion. */
+@media (prefers-reduced-motion: reduce) {
+  .strike-arrive svg,
+  .strike-arrive svg path,
+  .strike-arrive .strike-ring { animation: none; }
+  .strike-arrive svg { transform: none; opacity: 1; }
+  .strike-arrive .strike-ring { display: none; }
+}

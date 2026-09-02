@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lightning strike icons</title>
+<link rel="stylesheet" href="strike-icons.css">
+<style>
+  body { margin:0; padding:32px; background:#2f3339; color:#e9edf2;
+    font:14px/1.6 -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, sans-serif; }
+  h1 { font-size:16px; margin:0 0 20px; }
+  .row { display:flex; align-items:center; gap:28px; margin-bottom:22px; }
+  .row .label { width:190px; color:#9aa4b1; font-size:12.5px; }
+  button { background:rgba(255,255,255,.08); color:#e9edf2;
+    border:1px solid rgba(255,255,255,.16); border-radius:7px;
+    padding:6px 13px; font:inherit; font-size:12.5px; cursor:pointer; }
+  code { background:rgba(255,255,255,.09); padding:1px 5px; border-radius:4px; font-size:12px; }
+</style>
+</head>
+<body>
+
+<h1>Lightning strike icons</h1>
+
+<div class="row">
+  <span class="label">Resting — <code>.strike</code></span>
+  <span class="strike strike-orange"><svg viewBox="0 0 23 31"><path/></svg></span>
+  <span class="strike strike-blue"><svg viewBox="0 0 23 31"><path/></svg></span>
+</div>
+
+<div class="row">
+  <span class="label">Recent — <code>.strike-fresh</code></span>
+  <span class="strike strike-orange strike-fresh"><svg viewBox="0 0 23 31"><path/></svg></span>
+  <span class="strike strike-blue strike-fresh"><svg viewBox="0 0 23 31"><path/></svg></span>
+</div>
+
+<div class="row">
+  <span class="label">Arriving — <code>.strike-arrive</code></span>
+  <span class="strike strike-orange" id="a"><span class="strike-ring"></span><svg viewBox="0 0 23 31"><path/></svg></span>
+  <span class="strike strike-blue" id="b"><span class="strike-ring"></span><svg viewBox="0 0 23 31"><path/></svg></span>
+  <button id="play">Replay</button>
+</div>
+
+<div class="row">
+  <span class="label">As plain images — the two <code>.svg</code> files</span>
+  <img src="lightning-orange.svg" alt="Cloud-to-ground strike" width="18">
+  <img src="lightning-blue.svg" alt="Intra-cloud strike" width="18">
+</div>
+
+<script>
+/* One shared path, filled into every inline <svg> on the page. Inline is what
+   lets the CSS animate the fill for the white-hot flash. */
+const D = 'M18.3193 0H6.95469C6.5366 0 6.16264 0.260099 6.01717 0.652067L0.0632346 16.6952C-0.179191 17.3484 0.303992 18.0431 1.00075 18.0431H10.277L7.94665 29.2503C7.73063 30.2892 9.06821 30.905 9.717 30.0653L22.3178 13.7581C22.8257 13.1008 22.3572 12.1466 21.5265 12.1466H12.9558L19.1824 1.50502C19.5725 0.838366 19.0917 0 18.3193 0Z';
+document.querySelectorAll('.strike svg path').forEach(p => p.setAttribute('d', D));
+
+/* Add .strike-arrive to animate; remove it on animationend and the icon settles
+   into whatever state it is left in. */
+function arrive(el) {
+  el.classList.remove('strike-arrive');
+  void el.offsetWidth;                       // restart the animation
+  el.classList.add('strike-arrive');
+  el.addEventListener('animationend', function done(ev) {
+    if (ev.animationName !== 'strike-bloom') return;
+    el.removeEventListener('animationend', done);
+    el.classList.remove('strike-arrive');
+    el.classList.add('strike-fresh');         // hand over to the static halo
+  });
+}
+const play = () => ['a', 'b'].forEach(id => arrive(document.getElementById(id)));
+document.getElementById('play').addEventListener('click', play);
+play();
+</script>
+</body>
+</html>
