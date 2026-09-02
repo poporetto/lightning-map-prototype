@@ -69,7 +69,11 @@
    ------------------------------------------------------------------------ */
 
 /* The ring expands from the strike point, so it is anchored to the bolt tip for
-   ground strikes and to the centre for cloud strikes. */
+   ground strikes and to the centre for cloud strikes: a ground strike terminates
+   on the ground, an intra-cloud discharge does not. That assumes the two are
+   positioned the way the map positions them — tip on the coordinate for orange,
+   glyph centre on the coordinate for blue. Laid out side by side on a shared
+   baseline instead, the two rings will sit at visibly different heights. */
 .strike-ring {
   position: absolute; left: 50%; top: 100%;
   width: 12px; height: 12px; margin: -6px 0 0 -6px;
