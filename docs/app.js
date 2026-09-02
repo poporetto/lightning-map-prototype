@@ -42,15 +42,28 @@ function ageOpacity(ageMin) {
    1x walks the full 12 h in about three minutes. */
 const SPEED_MIN_PER_SEC = 4;
 
-/* Lightning bolt artwork supplied for this project — see lightning.svg in the
-   repo root, which is the source of truth for this path. The export's hardcoded
-   fill="#FFD426" is deliberately dropped: the markers take fill, stroke and the
-   white-hot arrival flash from CSS custom properties, so a baked-in colour
-   would break the three palettes and the arrival animation. */
-const BOLT_PATH = 'M18.3193 0H6.95469C6.5366 0 6.16264 0.260099 6.01717 0.652067L0.0632346 16.6952C-0.179191 17.3484 0.303992 18.0431 1.00075 18.0431H10.277L7.94665 29.2503C7.73063 30.2892 9.06821 30.905 9.717 30.0653L22.3178 13.7581C22.8257 13.1008 22.3572 12.1466 21.5265 12.1466H12.9558L19.1824 1.50502C19.5725 0.838366 19.0917 0 18.3193 0Z';
-const BOLT_SVG = '<svg viewBox="0 0 23 31" aria-hidden="true"><path d="' + BOLT_PATH + '"/></svg>';
+/* Icons are <img> references to the files in strike-icons/, not inlined SVG, so
+   recolouring means swapping the file — hence one SVG per colour. Each palette
+   names the pair it uses. See strike-icons/strike-icons.css for the details
+   this forces on the arrival animation. */
+const ICON_DIR = 'strike-icons/';
+const ICON_SETS = {
+  blue:   { cg: 'lightning-orange.svg', ic: 'lightning-blue.svg' },
+  purple: { cg: 'lightning-orange.svg', ic: 'lightning-purple.svg' },
+  hot:    { cg: 'lightning-amber.svg',  ic: 'lightning-steel.svg' }
+};
+let iconSet = ICON_SETS.blue;
+
+function iconUrl(type) { return ICON_DIR + iconSet[type]; }
+
+function glyphHtml(type) {
+  return '<span class="strike-glyph"><img src="' + iconUrl(type) + '" alt=""></span>';
+}
 /* The ring sits behind the glyph and expands from the strike point on arrival. */
 const RING_SPAN = '<span class="strike-ring"></span>';
+
+/* Markers are 15x20 — the artwork is 23:31, so this keeps its proportions. */
+const ICON_SIZE = [15, 20];
 
 /* ---------------- state ---------------- */
 
@@ -211,10 +224,11 @@ function makeIcon(strike, arrive, fresh) {
   const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
   if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
-  const size = strike.type === 'cg' ? [18, 24] : [14, 19];
+  const size = ICON_SIZE;
   return L.divIcon({
     className: 'strike-icon',
-    html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') + BOLT_SVG + '</div>',
+    html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') +
+          glyphHtml(strike.type) + '</div>',
     iconSize: size,
     // CG bolts point at the ground, so anchor them at the tip.
     iconAnchor: strike.type === 'cg' ? [size[0] / 2, size[1]] : [size[0] / 2, size[1] / 2]
@@ -352,9 +366,17 @@ document.getElementById('speed-select').addEventListener('change', e => {
 });
 
 document.getElementById('scheme-select').addEventListener('change', e => {
-  // Markers read their colours from CSS vars, so switching the palette repaints
-  // every strike already on the map without re-rendering anything.
-  document.body.dataset.scheme = e.target.value;
+  const next = e.target.value;
+  document.body.dataset.scheme = next;          // rims and halos are CSS vars
+  iconSet = ICON_SETS[next] || ICON_SETS.blue;
+
+  // The glyph itself is an <img>, so its colour lives in the file rather than in
+  // CSS. Repoint every icon already on the page; the files are cached after the
+  // first hit, so this costs no extra requests.
+  document.querySelectorAll('.strike-cg .strike-glyph img, .legend-icon .cg-icon')
+    .forEach(img => img.src = iconUrl('cg'));
+  document.querySelectorAll('.strike-ic .strike-glyph img, .legend-icon .ic-icon')
+    .forEach(img => img.src = iconUrl('ic'));
 });
 
 document.getElementById('radar-toggle').addEventListener('change', e => {
@@ -431,9 +453,10 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------------- boot ---------------- */
 
-// Legend swatches reuse the marker markup so they always match the map.
-document.getElementById('legend-cg').innerHTML = '<span class="strike-marker strike-cg">' + BOLT_SVG + '</span>';
-document.getElementById('legend-ic').innerHTML = '<span class="strike-marker strike-ic">' + BOLT_SVG + '</span>';
+// Legend swatches point at the same files as the markers, so they follow the
+// palette automatically.
+document.getElementById('legend-cg').innerHTML = '<img class="cg-icon" src="' + iconUrl('cg') + '" alt="">';
+document.getElementById('legend-ic').innerHTML = '<img class="ic-icon" src="' + iconUrl('ic') + '" alt="">';
 
 update();
 loadRadar();

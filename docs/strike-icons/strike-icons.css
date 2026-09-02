@@ -1,34 +1,42 @@
 /* ============================================================================
    Lightning strike icons — standalone styling
    ----------------------------------------------------------------------------
-   Self-contained: no build step, no dependencies, nothing outside this file.
+   Self-contained: no build step, no dependencies, nothing outside this folder.
 
    Markup, per strike:
 
      <span class="strike strike-orange">
        <span class="strike-ring"></span>
-       <svg viewBox="0 0 23 31"><path d="…"/></svg>
+       <span class="strike-glyph"><img src="lightning-orange.svg" alt=""></span>
      </span>
 
-   Add classes to change state:
-     .strike-fresh    static halo   — hold it while the strike is recent
-     .strike-arrive   arrival       — add once on arrival, remove on animationend
+   State classes:
+     .strike-fresh    static halo — hold it while the strike is recent
+     .strike-arrive   arrival     — add once, remove on animationend
 
-   The <svg> must be INLINE in the HTML, not an <img src="lightning-orange.svg">.
-   The white-hot flash animates the path's fill, and CSS cannot reach inside an
-   image. The two .svg files in this folder have their colours baked in for use
-   as plain images where no animation is needed.
+   ---- Why the extra .strike-glyph wrapper ----
+   The icon is an <img>, so CSS cannot reach the path inside it: fill and stroke
+   are fixed by the file. Two things fall out of that.
+
+   1. The white-hot arrival flash is painted as a separate white layer on top,
+      masked to the glyph's silhouette by lightning-mask.svg. It has to sit
+      inside the same wrapper as the <img> so the drop animation moves both
+      together.
+   2. Recolouring means swapping the file. Change the <img src> — there is one
+      SVG per colour in this folder.
+
+   The halo and shadow are drop-shadow filters, which DO work on an <img>
+   because they follow its alpha channel.
    ========================================================================= */
 
 .strike {
-  /* Palette. Override these on .strike (or any ancestor) for other colours. */
-  --c:     #ffb020;                    /* body   */
-  --c2:    #ffe27a;                    /* rim    */
-  --halo:  rgba(255, 226, 122, .8);    /* glow while fresh */
+  /* Rim and halo only. The body colour lives in the SVG file itself. */
+  --c2:   #ffe27a;                     /* ring stroke      */
+  --halo: rgba(255, 226, 122, .8);     /* glow while fresh */
 
-  /* 23:31 is the artwork's aspect ratio — keep it or the glyph letterboxes. */
-  --w: 18px;
-  --h: 24px;
+  /* 23:31 is the artwork's aspect ratio — 15x20 keeps it, near enough. */
+  --w: 15px;
+  --h: 20px;
 
   position: relative;
   display: inline-block;
@@ -36,31 +44,42 @@
   height: var(--h);
 }
 
-.strike-orange { --c: #ffb020; --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
-.strike-blue   { --c: #4da6ff; --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
+.strike-orange { --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
+.strike-blue   { --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
+.strike-purple { --c2: #d7bcff; --halo: rgba(215, 188, 255, .8); }
+.strike-amber  { --c2: #fff0b8; --halo: rgba(255, 240, 184, .9); }
+.strike-steel  { --c2: #cfe4f2; --halo: rgba(207, 228, 242, .7); }
 
-.strike svg {
-  width: 100%; height: 100%; display: block;
+.strike-glyph {
+  position: absolute; inset: 0;
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
   /* Eases every handover between arrival, halo and rest so none of them pops. */
   transition: filter .45s ease-out;
 }
-.strike svg path {
-  fill: var(--c); stroke: var(--c2); stroke-width: .9;
-  stroke-linejoin: round; stroke-linecap: round;
+.strike-glyph img { width: 100%; height: 100%; display: block; }
+
+/* The white flash. A solid white layer clipped to the glyph's silhouette, since
+   the <img>'s own colours cannot be animated. Lives inside .strike-glyph so the
+   drop animation carries it along with the icon. */
+.strike-glyph::after {
+  content: ""; position: absolute; inset: 0;
+  background: #fff; opacity: 0; pointer-events: none;
+  -webkit-mask: url(lightning-mask.svg) center / contain no-repeat;
+          mask: url(lightning-mask.svg) center / contain no-repeat;
 }
 
 /* Scale from the point the strike actually hits, so it holds still while the
-   glyph grows. Orange is a ground strike, so it is anchored at the bolt tip. */
-.strike-orange svg { transform-origin: 50% 100%; }
-.strike-blue   svg { transform-origin: 50% 50%; }
+   glyph grows. Orange and amber are ground strikes, anchored at the bolt tip. */
+.strike-glyph { transform-origin: 50% 50%; }
+.strike-orange .strike-glyph,
+.strike-amber  .strike-glyph { transform-origin: 50% 100%; }
 
 /* ---------------------------------------------------------------------------
    The state — held, unanimated, while a strike is recent.
    Opacity alone cannot express recency: if you fade strikes by age, the top of
    that ramp is flat, so the newest and the nearly-expired look identical.
    ------------------------------------------------------------------------ */
-.strike-fresh svg { filter: drop-shadow(0 0 4px var(--halo)); }
+.strike-fresh .strike-glyph { filter: drop-shadow(0 0 4px var(--halo)); }
 
 /* ---------------------------------------------------------------------------
    The moment — fires once, on arrival. About 2.9s end to end.
@@ -71,26 +90,27 @@
 /* The ring expands from the strike point, so it is anchored to the bolt tip for
    ground strikes and to the centre for cloud strikes: a ground strike terminates
    on the ground, an intra-cloud discharge does not. That assumes the two are
-   positioned the way the map positions them — tip on the coordinate for orange,
-   glyph centre on the coordinate for blue. Laid out side by side on a shared
+   positioned the way a map positions them — tip on the coordinate for ground,
+   glyph centre on the coordinate for cloud. Laid out side by side on a shared
    baseline instead, the two rings will sit at visibly different heights. */
 .strike-ring {
-  position: absolute; left: 50%; top: 100%;
+  position: absolute; left: 50%; top: 50%;
   width: 12px; height: 12px; margin: -6px 0 0 -6px;
   border-radius: 50%; border: 2px solid var(--c2);
   opacity: 0; pointer-events: none;
 }
-.strike-blue .strike-ring { top: 50%; }
+.strike-orange .strike-ring,
+.strike-amber  .strike-ring { top: 100%; }
 
-/* The drop rides on the <svg>, not the wrapper, so the ring stays pinned to the
-   strike point instead of being dragged down with the glyph. Two animations on
-   one element is fine — they touch different properties. */
-.strike-arrive svg {
+/* The drop rides on .strike-glyph, not the outer wrapper, so the ring stays
+   pinned to the strike point instead of being dragged down with the icon. Two
+   animations on one element is fine — they touch different properties. */
+.strike-arrive .strike-glyph {
   animation: strike-drop 1.0s cubic-bezier(.22, 1, .36, 1) both,
              strike-bloom 2.9s ease-out both;
 }
+.strike-arrive .strike-glyph::after { animation: strike-flash 2.4s ease-out both; }
 .strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
-.strike-arrive svg path     { animation: strike-cool 2.4s ease-out both; }
 
 /* Falls a few pixels into place as it lands — enough to read as downward
    motion, not so much that it looks like the marker is in the wrong spot. */
@@ -100,13 +120,13 @@
   55%  { transform: translateY(0) scale(1.06); }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+@keyframes strike-flash {
+  0%, 24% { opacity: 1; }
+  100%    { opacity: 0; }
+}
 @keyframes strike-shock {
   0%   { transform: scale(.4); opacity: .95; border-width: 2px; }
   100% { transform: scale(6); opacity: 0; border-width: .5px; }
-}
-@keyframes strike-cool {
-  0%, 24% { fill: #fff; stroke: #fff; }
-  100%    { fill: var(--c); stroke: var(--c2); }
 }
 @keyframes strike-bloom {
   0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
@@ -116,9 +136,10 @@
 
 /* No arrival animation, but the halo still applies — it is state, not motion. */
 @media (prefers-reduced-motion: reduce) {
-  .strike-arrive svg,
-  .strike-arrive svg path,
+  .strike-arrive .strike-glyph,
+  .strike-arrive .strike-glyph::after,
   .strike-arrive .strike-ring { animation: none; }
-  .strike-arrive svg { transform: none; opacity: 1; }
+  .strike-arrive .strike-glyph { transform: none; opacity: 1; }
+  .strike-arrive .strike-glyph::after { opacity: 0; }
   .strike-arrive .strike-ring { display: none; }
 }

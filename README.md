@@ -23,7 +23,7 @@ then visit http://localhost:5178
 | `docs/icon-options.html` | Throwaway: intra-cloud glyph comparison |
 | `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
 | `docs/halo-vs-opacity.html` | Throwaway: static halo vs opacity-only comparison |
-| `docs/strike-icons/` | Standalone icon bundle — two SVGs, one CSS file, a demo page |
+| `docs/strike-icons/` | The icon files themselves, plus a standalone CSS file and demo page |
 
 Everything lives in `docs/` so GitHub Pages can serve it directly — set
 **Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder
@@ -202,13 +202,21 @@ The PRNG is seeded, so the data is identical on every reload. Change the seed in
 ## Icon licence
 
 None to observe. The bolt is original artwork supplied for this project —
-`lightning.svg` in the repo root is the source of truth, and its path is inlined
-into `BOLT_PATH`. No icon set is involved and nothing needs attributing.
+`lightning.svg` in the repo root is the source shape. No icon set is involved and
+nothing needs attributing.
 
-The export's hardcoded `fill="#FFD426"` is deliberately dropped when the path is
-inlined. Markers take their fill, rim stroke and the white-hot arrival flash from
-CSS custom properties, so a baked-in colour would break both the palette switcher
-and the arrival animation.
+Markers reference the recoloured copies in `docs/strike-icons/` as `<img>`, not
+as inlined SVG. That is a deliberate constraint, and it costs two things:
+
+- **Recolouring means swapping the file.** CSS cannot reach the path inside an
+  `<img>`, so there is one SVG per colour and the palette switcher repoints every
+  `src`. The files are cached after first use, so it costs no extra requests.
+- **The white-hot arrival flash is a separate layer.** It is a solid white block
+  clipped to the glyph's silhouette by `lightning-mask.svg`, sitting inside the
+  same wrapper as the `<img>` so the drop animation carries both together.
+
+The halo and drop shadow are unaffected — `drop-shadow` follows an image's alpha
+channel, so it traces the bolt outline exactly as it did with inline SVG.
 
 This replaced Font Awesome. FA Free is fine for commercial use, but its icons are
 CC BY 4.0, which requires attribution — and the popular alternatives only lighten

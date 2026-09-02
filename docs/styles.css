@@ -126,7 +126,7 @@ html, body {
 .legend-item { display: flex; align-items: center; gap: 9px; font-size: 12.5px; margin-bottom: 7px; }
 .legend-item em { font-style: normal; color: var(--muted); font-variant-numeric: tabular-nums; }
 .legend-icon { width: 16px; height: 16px; display: inline-flex; }
-.legend-icon .strike-marker { width: 100%; height: 100%; display: block; }
+.legend-icon img { width: 100%; height: 100%; display: block; }
 
 .age-ramp { display: flex; gap: 4px; }
 .age-ramp + .age-ramp { margin-top: 4px; }
@@ -204,24 +204,48 @@ html, body {
   padding: 4px 6px; font: inherit; font-size: 12px; cursor: pointer;
 }
 
-/* ---------- strike markers ---------- */
-.strike-marker { position: relative; will-change: opacity, transform; }
-.strike-marker svg {
-  width: 100%; height: 100%; display: block;
+/* ---------- strike markers ----------
+   The glyph is an <img> pointing at a file in strike-icons/, so CSS cannot
+   reach the path inside it — fill and stroke are fixed by the file. Two
+   consequences: the white arrival flash is a separate white layer masked to the
+   glyph silhouette, and switching palette means swapping the img src (app.js
+   does that). The halo and shadow are drop-shadow filters, which do work on an
+   <img> because they follow its alpha. ---- */
+/* Leaflet sizes the outer .strike-icon from iconSize; this fills it, so the
+   absolutely-positioned glyph below has a box to resolve inset: 0 against. */
+.strike-marker { position: relative; width: 100%; height: 100%; will-change: opacity; }
+.strike-cg { --c2: var(--cg-hi); --halo: var(--cg-halo); }
+.strike-ic { --c2: var(--ic-hi); --halo: var(--ic-halo); }
+
+.strike-glyph {
+  position: absolute; inset: 0;
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
   /* Softens every handover between the arrival, the halo and the resting
      shadow, so none of the three swaps reads as a pop. */
   transition: filter .45s ease-out;
+  will-change: transform, filter;
 }
-.strike-marker svg path {
-  fill: var(--c); stroke: var(--c2); stroke-width: .9;
-  stroke-linejoin: round; stroke-linecap: round;
+.strike-glyph img { width: 100%; height: 100%; display: block; }
+
+/* The white flash: a solid white layer clipped to the glyph's silhouette, since
+   the img's own colours cannot be animated. Inside .strike-glyph so the drop
+   animation carries it along with the icon. */
+.strike-glyph::after {
+  content: ""; position: absolute; inset: 0;
+  background: #fff; opacity: 0; pointer-events: none;
+  -webkit-mask: url(strike-icons/lightning-mask.svg) center / contain no-repeat;
+          mask: url(strike-icons/lightning-mask.svg) center / contain no-repeat;
 }
-.strike-cg { --c: var(--cg); --c2: var(--cg-hi); --halo: var(--cg-halo); }
-.strike-ic { --c: var(--ic); --c2: var(--ic-hi); --halo: var(--ic-halo); }
+
+/* Scale from the point the strike actually hits, so it stays put while the
+   glyph grows: the tip for cloud-to-ground, the centre for intra-cloud. */
+.strike-cg .strike-glyph { transform-origin: 50% 100%; }
+.strike-ic .strike-glyph { transform-origin: 50% 50%; }
 
 /* The shockwave ring expands from the strike point itself, so it is anchored to
-   the bolt tip for cloud-to-ground and to the centre for intra-cloud. */
+   the bolt tip for cloud-to-ground and to the centre for intra-cloud. Each type
+   is positioned on its coordinate differently, so both rings end up centred on
+   the strike. */
 .strike-ring {
   position: absolute; left: 50%; top: 100%;
   width: 12px; height: 12px; margin: -6px 0 0 -6px;
@@ -232,20 +256,12 @@ html, body {
 
 /* ---- the moment ----
    Fires once, on strikes landing at the newest timestamp. ---- */
-/* The drop rides on the <svg>, not the wrapper, so the ring below stays pinned
-   to the strike point instead of being dragged down with the glyph. Two
-   animations on one element is fine here — they touch different properties. */
-.strike-arrive svg {
+.strike-arrive .strike-glyph {
   animation: strike-drop 1.0s cubic-bezier(.22, 1, .36, 1) both,
              strike-bloom 2.9s ease-out both;
 }
+.strike-arrive .strike-glyph::after { animation: strike-flash 2.4s ease-out both; }
 .strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
-.strike-arrive svg path     { animation: strike-cool 2.4s ease-out both; }
-
-/* Scale from the point the strike actually hits, so it stays put while the
-   glyph grows: the tip for cloud-to-ground, the centre for intra-cloud. */
-.strike-cg svg { transform-origin: 50% 100%; }
-.strike-ic svg { transform-origin: 50% 50%; }
 
 /* Falls a few pixels into place as it lands — enough to read as downward
    motion, not so much that it looks like the marker is in the wrong spot. */
@@ -255,13 +271,13 @@ html, body {
   55%  { transform: translateY(0) scale(1.06); }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+@keyframes strike-flash {
+  0%, 24% { opacity: 1; }
+  100%    { opacity: 0; }
+}
 @keyframes strike-shock {
   0%   { transform: scale(.4); opacity: .95; border-width: 2px; }
   100% { transform: scale(6); opacity: 0; border-width: .5px; }
-}
-@keyframes strike-cool {
-  0%, 24% { fill: #fff; stroke: #fff; }
-  100%    { fill: var(--c); stroke: var(--c2); }
 }
 /* Settles onto the same halo the state below holds, so when the class is
    dropped a still-fresh strike carries straight on unchanged. */
@@ -277,14 +293,15 @@ html, body {
    opacity ramp cannot carry this on its own: it sits flat at 100% across the
    whole 0-5 minute band, which leaves a 10-second-old strike and a 5-minute-old
    one pixel-identical. See halo-vs-opacity.html. ---- */
-.strike-fresh svg { filter: drop-shadow(0 0 4px var(--halo)); }
+.strike-fresh .strike-glyph { filter: drop-shadow(0 0 4px var(--halo)); }
 
 /* No arrival animation, but the halo still applies — it is state, not motion. */
 @media (prefers-reduced-motion: reduce) {
-  .strike-arrive svg,
-  .strike-arrive svg path,
+  .strike-arrive .strike-glyph,
+  .strike-arrive .strike-glyph::after,
   .strike-arrive .strike-ring { animation: none; }
-  .strike-arrive svg { transform: none; opacity: 1; }
+  .strike-arrive .strike-glyph { transform: none; opacity: 1; }
+  .strike-arrive .strike-glyph::after { opacity: 0; }
   .strike-arrive .strike-ring { display: none; }
 }
 
