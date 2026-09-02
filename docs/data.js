@@ -5,7 +5,7 @@
    - Strikes come from a handful of convective "cells" that migrate
      roughly W->E across the 12h window (front-like), not uniform noise.
    - Each cell fires in Poisson-ish bursts: quiet stretches, then flurries.
-   - ~87% intra-cloud (blue), ~13% cloud-to-ground (orange-yellow),
+   - ~87% cloud-to-cloud, ~13% cloud-to-ground, which is close to the
      which is close to the real ratio and keeps CG strikes meaningful.
    - Seeded PRNG so the prototype is identical on every reload.
 ------------------------------------------------------------------- */
@@ -122,7 +122,7 @@ function generateStrikes(endTime, seed = 20260901) {
           time: t + Math.floor(rng() * stepMs),
           lat: Math.round(lat * 10000) / 10000,
           lon: Math.round(lon * 10000) / 10000,
-          type,                                   // 'cg' = cloud-to-ground, 'ic' = intra-cloud
+          type,                                   // 'cg' = cloud-to-ground, 'ic' = cloud-to-cloud
           amps: type === 'cg'
             ? Math.round(-8 - rng() * 90)         // kA, CG usually negative
             : Math.round(4 + rng() * 22),

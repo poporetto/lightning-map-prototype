@@ -24,7 +24,7 @@ then visit http://localhost:5178
 | `docs/strike-animations.html` | Throwaway: new-strike animation comparison |
 | `docs/halo-vs-opacity.html` | Throwaway: static halo vs opacity-only comparison |
 | `docs/icons/` | The map's icon files — one SVG per palette colour, plus the flash mask |
-| `docs/strike-icons/` | Standalone handoff pack: orange and blue only, its own CSS and demo |
+| `docs/strike-icons/` | Standalone handoff pack: the two strike types, its own CSS and demo |
 
 Everything lives in `docs/` so GitHub Pages can serve it directly — set
 **Settings → Pages → Source** to *Deploy from a branch*, branch `main`, folder
@@ -224,9 +224,13 @@ orange and blue. The map keeps its own full set in `docs/icons/` so the pack doe
 not have to ship palettes it never uses; the two orange/blue files are duplicated
 between them, so a change to the artwork needs applying in both.
 
-A colour class (`.strike-orange` / `.strike-blue`) is still required even though
-the body colour now comes from the file. It supplies the ring stroke colour, the
-halo colour, and which point the icon anchors to.
+A type class (`.strike-cloud-to-ground` / `.strike-cloud-to-cloud`) is still
+required even though the body colour now comes from the file. It supplies the
+ring stroke colour, the halo colour, and which point the icon anchors to.
+
+Classes and icon filenames name the **strike type**, not the colour, since the
+colour changes with the palette while the type does not. Map icons are
+`<type>-<palette>.svg`; the pack ships one file per type.
 
 This replaced Font Awesome. FA Free is fine for commercial use, but its icons are
 CC BY 4.0, which requires attribution — and the popular alternatives only lighten

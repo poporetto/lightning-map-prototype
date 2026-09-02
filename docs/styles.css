@@ -10,7 +10,7 @@
   --cg: #ffb020;      /* cloud-to-ground: orange-yellow */
   --cg-hi: #ffe27a;
   --cg-halo: rgba(255, 226, 122, .8);
-  --ic: #4da6ff;      /* intra-cloud: blue */
+  --ic: #4da6ff;      /* cloud-to-cloud: blue */
   --ic-hi: #a8d5ff;
   --ic-halo: rgba(168, 213, 255, .8);
 }
@@ -23,8 +23,8 @@ body[data-scheme="purple"] {
   --ic-halo: rgba(215, 188, 255, .8);
 }
 
-/* Deliberately unequal. Cloud-to-ground runs hotter and brighter; intra-cloud
-   is pulled down to a muted steel that recedes. Intra-cloud is ~87% of strikes
+/* Deliberately unequal. Cloud-to-ground runs hotter and brighter; cloud-to-cloud
+   is pulled down to a muted steel that recedes. Cloud-to-cloud is ~87% of strikes
    and cloud-to-ground is the one that matters on the ground, so the palette
    spends contrast where the significance is rather than splitting it evenly. */
 body[data-scheme="hot"] {
@@ -205,7 +205,7 @@ html, body {
 }
 
 /* ---------- strike markers ----------
-   The glyph is an <img> pointing at a file in strike-icons/, so CSS cannot
+   The glyph is an <img> pointing at a file in icons/, so CSS cannot
    reach the path inside it — fill and stroke are fixed by the file. Two
    consequences: the white arrival flash is a separate white layer masked to the
    glyph silhouette, and switching palette means swapping the img src (app.js
@@ -214,8 +214,8 @@ html, body {
 /* Leaflet sizes the outer .strike-icon from iconSize; this fills it, so the
    absolutely-positioned glyph below has a box to resolve inset: 0 against. */
 .strike-marker { position: relative; width: 100%; height: 100%; will-change: opacity; }
-.strike-cg { --c2: var(--cg-hi); --halo: var(--cg-halo); }
-.strike-ic { --c2: var(--ic-hi); --halo: var(--ic-halo); }
+.strike-cloud-to-ground { --c2: var(--cg-hi); --halo: var(--cg-halo); }
+.strike-cloud-to-cloud { --c2: var(--ic-hi); --halo: var(--ic-halo); }
 
 .strike-glyph {
   position: absolute; inset: 0;
@@ -233,17 +233,17 @@ html, body {
 .strike-glyph::after {
   content: ""; position: absolute; inset: 0;
   background: #fff; opacity: 0; pointer-events: none;
-  -webkit-mask: url(icons/lightning-mask.svg) center / contain no-repeat;
-          mask: url(icons/lightning-mask.svg) center / contain no-repeat;
+  -webkit-mask: url(icons/strike-mask.svg) center / contain no-repeat;
+          mask: url(icons/strike-mask.svg) center / contain no-repeat;
 }
 
 /* Scale from the point the strike actually hits, so it stays put while the
-   glyph grows: the tip for cloud-to-ground, the centre for intra-cloud. */
-.strike-cg .strike-glyph { transform-origin: 50% 100%; }
-.strike-ic .strike-glyph { transform-origin: 50% 50%; }
+   glyph grows: the tip for cloud-to-ground, the centre for cloud-to-cloud. */
+.strike-cloud-to-ground .strike-glyph { transform-origin: 50% 100%; }
+.strike-cloud-to-cloud .strike-glyph { transform-origin: 50% 50%; }
 
 /* The shockwave ring expands from the strike point itself, so it is anchored to
-   the bolt tip for cloud-to-ground and to the centre for intra-cloud. Each type
+   the bolt tip for cloud-to-ground and to the centre for cloud-to-cloud. Each type
    is positioned on its coordinate differently, so both rings end up centred on
    the strike. */
 .strike-ring {
@@ -252,7 +252,7 @@ html, body {
   border-radius: 50%; border: 2px solid var(--c2);
   opacity: 0; pointer-events: none;
 }
-.strike-ic .strike-ring { top: 50%; }
+.strike-cloud-to-cloud .strike-ring { top: 50%; }
 
 /* ---- the moment ----
    Fires once, on strikes landing at the newest timestamp. ---- */

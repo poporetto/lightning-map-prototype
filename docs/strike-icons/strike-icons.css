@@ -5,9 +5,9 @@
 
    Markup, per strike:
 
-     <span class="strike strike-orange">
+     <span class="strike strike-cloud-to-ground">
        <span class="strike-ring"></span>
-       <span class="strike-glyph"><img src="lightning-orange.svg" alt=""></span>
+       <span class="strike-glyph"><img src="lightning-cloud-to-ground.svg" alt=""></span>
      </span>
 
    State classes:
@@ -15,7 +15,7 @@
      .strike-arrive   arrival     — add once, remove on animationend
 
    ---- What the colour class does ----
-   The body colour comes from the SVG file, so .strike-orange / .strike-blue are
+   The body colour comes from the SVG file, so .strike-cloud-to-ground / .strike-cloud-to-cloud are
    not setting it. They are still required, for three things: the ring's stroke
    colour, the halo colour, and which point the icon is anchored to. Drop the
    class and you get a bare fallback for the first two and centre anchoring for
@@ -26,7 +26,7 @@
    are fixed by the file. Two things fall out of that.
 
    1. The white-hot arrival flash is painted as a separate white layer on top,
-      masked to the glyph's silhouette by lightning-mask.svg. It has to sit
+      masked to the glyph's silhouette by strike-mask.svg. It has to sit
       inside the same wrapper as the <img> so the drop animation moves both
       together.
    2. Recolouring means swapping the file. Change the <img src> — there is one
@@ -49,15 +49,14 @@
   height: var(--h);
 }
 
-/* Ground strike. Anchored at the bolt tip, because a ground strike terminates
-   at a point on the ground and that point is what the icon marks. */
-.strike-orange { --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
-.strike-orange .strike-glyph { transform-origin: 50% 100%; }
-.strike-orange .strike-ring  { top: 100%; }
+/* Cloud-to-ground. Anchored at the bolt tip, because the strike terminates at a
+   point on the ground and that point is what the icon marks. */
+.strike-cloud-to-ground { --c2: #ffe27a; --halo: rgba(255, 226, 122, .8); }
+.strike-cloud-to-ground .strike-glyph { transform-origin: 50% 100%; }
+.strike-cloud-to-ground .strike-ring  { top: 100%; }
 
-/* Cloud strike. Centred, because an intra-cloud discharge has no ground
-   contact point. */
-.strike-blue { --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
+/* Cloud-to-cloud. Centred, because the discharge has no ground contact point. */
+.strike-cloud-to-cloud { --c2: #a8d5ff; --halo: rgba(168, 213, 255, .8); }
 .strike-glyph {
   position: absolute; inset: 0;
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
@@ -75,8 +74,8 @@
 .strike-glyph::after {
   content: ""; position: absolute; inset: 0;
   background: #fff; opacity: 0; pointer-events: none;
-  -webkit-mask: url(lightning-mask.svg) center / contain no-repeat;
-          mask: url(lightning-mask.svg) center / contain no-repeat;
+  -webkit-mask: url(strike-mask.svg) center / contain no-repeat;
+          mask: url(strike-mask.svg) center / contain no-repeat;
 }
 
 /* ---------------------------------------------------------------------------
@@ -93,10 +92,10 @@
    ------------------------------------------------------------------------ */
 
 /* The ring expands from the strike point, so it is anchored to the bolt tip for
-   ground strikes and to the centre for cloud strikes: a ground strike terminates
-   on the ground, an intra-cloud discharge does not. That assumes the two are
-   positioned the way a map positions them — tip on the coordinate for ground,
-   glyph centre on the coordinate for cloud. Laid out side by side on a shared
+   cloud-to-ground and to the centre for cloud-to-cloud: the first terminates on
+   the ground, the second does not. That assumes the two are positioned the way a
+   map positions them — tip on the coordinate for cloud-to-ground, glyph centre
+   on the coordinate for cloud-to-cloud. Laid out side by side on a shared
    baseline instead, the two rings will sit at visibly different heights. */
 .strike-ring {
   position: absolute; left: 50%; top: 50%;

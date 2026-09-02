@@ -44,13 +44,13 @@ const SPEED_MIN_PER_SEC = 4;
 
 /* Icons are <img> references to the files in strike-icons/, not inlined SVG, so
    recolouring means swapping the file — hence one SVG per colour. Each palette
-   names the pair it uses. See strike-icons/strike-icons.css for the details
-   this forces on the arrival animation. */
+   names the pair it uses. Files are named by strike type and palette; the
+   standalone pack in strike-icons/ carries its own copies. */
 const ICON_DIR = 'icons/';
 const ICON_SETS = {
-  blue:   { cg: 'lightning-orange.svg', ic: 'lightning-blue.svg' },
-  purple: { cg: 'lightning-orange.svg', ic: 'lightning-purple.svg' },
-  hot:    { cg: 'lightning-amber.svg',  ic: 'lightning-steel.svg' }
+  blue:   { cg: 'cloud-to-ground-default.svg', ic: 'cloud-to-cloud-default.svg' },
+  purple: { cg: 'cloud-to-ground-default.svg', ic: 'cloud-to-cloud-purple.svg' },
+  hot:    { cg: 'cloud-to-ground-hot.svg',     ic: 'cloud-to-cloud-hot.svg' }
 };
 let iconSet = ICON_SETS.blue;
 
@@ -221,7 +221,8 @@ function lowerBound(t) {
 }
 
 function makeIcon(strike, arrive, fresh) {
-  const cls = ['strike-marker', strike.type === 'cg' ? 'strike-cg' : 'strike-ic'];
+  const cls = ['strike-marker',
+    strike.type === 'cg' ? 'strike-cloud-to-ground' : 'strike-cloud-to-cloud'];
   if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
   const size = ICON_SIZE;
@@ -237,7 +238,7 @@ function makeIcon(strike, arrive, fresh) {
 
 function popupHtml(s) {
   const d = new Date(s.time);
-  return '<b>' + (s.type === 'cg' ? 'Cloud-to-ground' : 'Intra-cloud') + ' strike</b>' +
+  return '<b>' + (s.type === 'cg' ? 'Cloud-to-ground' : 'Cloud-to-cloud') + ' strike</b>' +
     '<span class="k">Time</span> ' + fmtTime(d) + '<br>' +
     '<span class="k">Position</span> ' + s.lat.toFixed(3) + ', ' + s.lon.toFixed(3) + '<br>' +
     '<span class="k">Peak current</span> ' + s.amps + ' kA';
@@ -373,9 +374,9 @@ document.getElementById('scheme-select').addEventListener('change', e => {
   // The glyph itself is an <img>, so its colour lives in the file rather than in
   // CSS. Repoint every icon already on the page; the files are cached after the
   // first hit, so this costs no extra requests.
-  document.querySelectorAll('.strike-cg .strike-glyph img, .legend-icon .cg-icon')
+  document.querySelectorAll('.strike-cloud-to-ground .strike-glyph img, .legend-icon .cg-icon')
     .forEach(img => img.src = iconUrl('cg'));
-  document.querySelectorAll('.strike-ic .strike-glyph img, .legend-icon .ic-icon')
+  document.querySelectorAll('.strike-cloud-to-cloud .strike-glyph img, .legend-icon .ic-icon')
     .forEach(img => img.src = iconUrl('ic'));
 });
 
