@@ -5,35 +5,14 @@
   --text: #e9edf2;
   --muted: #9aa4b1;
   --accent: #7db3ff;
-  /* Default palette. Each scheme sets four vars: the two fills, their rim
-     highlights, and the halo each type blooms to on arrival. */
+  /* Strike colours, fixed. They match the fills baked into the icon files and
+     are used by the legend's age ramps. */
   --cg: #ffb020;      /* cloud-to-ground: orange-yellow */
-  --cg-hi: #ffe27a;
-  --cg-halo: rgba(255, 226, 122, .8);
   --ic: #4da6ff;      /* cloud-to-cloud: blue */
-  --ic-hi: #a8d5ff;
-  --ic-halo: rgba(168, 213, 255, .8);
-}
 
-/* Violet reads as electrical discharge and sits nearly opposite the orange on
-   the wheel, so the two types separate further than blue manages. */
-body[data-scheme="purple"] {
-  --ic: #a06bff;
-  --ic-hi: #d7bcff;
-  --ic-halo: rgba(215, 188, 255, .8);
-}
-
-/* Deliberately unequal. Cloud-to-ground runs hotter and brighter; cloud-to-cloud
-   is pulled down to a muted steel that recedes. Cloud-to-cloud is ~87% of strikes
-   and cloud-to-ground is the one that matters on the ground, so the palette
-   spends contrast where the significance is rather than splitting it evenly. */
-body[data-scheme="hot"] {
-  --cg: #ffc233;
-  --cg-hi: #fff0b8;
-  --cg-halo: rgba(255, 240, 184, .9);
-  --ic: #7fb3d5;
-  --ic-hi: #cfe4f2;
-  --ic-halo: rgba(207, 228, 242, .7);
+  /* Scales every duration in the arrival sequence. app.js sets it to 1/speed so
+     the arrival stays the same fraction of a strike's life at fast playback. */
+  --arrive-scale: 1;
 }
 
 * { box-sizing: border-box; }
@@ -198,32 +177,39 @@ html, body {
 }
 
 .speed { flex: none; display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); }
-#scheme-select, .speed select {
+#density-ramp-select, .speed select {
   background: rgba(255, 255, 255, .08); color: var(--text);
   border: 1px solid var(--panel-border); border-radius: 8px;
   padding: 4px 6px; font: inherit; font-size: 12px; cursor: pointer;
 }
 
+/* ---------- density surface ---------- */
+/* Positioned by Leaflet via setPosition, so it must not carry its own offsets. */
+.density-canvas { position: absolute; left: 0; top: 0; pointer-events: none; }
+
+.density-ramp { height: 9px; border-radius: 3px; }
+.density-scale {
+  display: flex; justify-content: space-between;
+  font-size: 10px; color: var(--muted); margin-top: 4px;
+}
+
 /* ---------- strike markers ----------
    The glyph is an <img> pointing at a file in icons/, so CSS cannot
-   reach the path inside it — fill and stroke are fixed by the file. Two
-   consequences: the white arrival flash is a separate white layer masked to the
-   glyph silhouette, and switching palette means swapping the img src (app.js
-   does that). The halo and shadow are drop-shadow filters, which do work on an
-   <img> because they follow its alpha. ---- */
+   reach the path inside it — fill and stroke are fixed by the file. So the
+   white arrival flash is a separate white layer masked to the glyph
+   silhouette. The dark edge is a drop-shadow filter, which does work on an
+   <img> because it follows its alpha. ---- */
 /* Leaflet sizes the outer .strike-icon from iconSize; this fills it, so the
    absolutely-positioned glyph below has a box to resolve inset: 0 against. */
 .strike-marker { position: relative; width: 100%; height: 100%; will-change: opacity; }
-.strike-cloud-to-ground { --c2: var(--cg-hi); --halo: var(--cg-halo); }
-.strike-cloud-to-cloud { --c2: var(--ic-hi); --halo: var(--ic-halo); }
 
+/* The dark edge is not a halo — it is what separates a bolt from the density
+   surface painted underneath it, and it matters more now that the markers are
+   30% smaller. Kept deliberately. */
 .strike-glyph {
   position: absolute; inset: 0;
   filter: drop-shadow(0 0 1.5px rgba(0, 0, 0, .85));
-  /* Softens every handover between the arrival, the halo and the resting
-     shadow, so none of the three swaps reads as a pop. */
-  transition: filter .45s ease-out;
-  will-change: transform, filter;
+  will-change: transform, opacity;
 }
 .strike-glyph img { width: 100%; height: 100%; display: block; }
 
@@ -242,67 +228,43 @@ html, body {
 .strike-cloud-to-ground .strike-glyph { transform-origin: 50% 100%; }
 .strike-cloud-to-cloud .strike-glyph { transform-origin: 50% 50%; }
 
-/* The shockwave ring expands from the strike point itself, so it is anchored to
-   the bolt tip for cloud-to-ground and to the centre for cloud-to-cloud. Each type
-   is positioned on its coordinate differently, so both rings end up centred on
-   the strike. */
-.strike-ring {
-  position: absolute; left: 50%; top: 100%;
-  width: 12px; height: 12px; margin: -6px 0 0 -6px;
-  border-radius: 50%; border: 2px solid var(--c2);
-  opacity: 0; pointer-events: none;
-}
-.strike-cloud-to-cloud .strike-ring { top: 50%; }
-
-/* ---- the moment ----
-   Fires once, on strikes landing at the newest timestamp. ---- */
+/* ---- the arrival ----
+   Fires once, on strikes landing at the newest timestamp. Two parts run
+   together: the glyph falls into place, and a white layer over it fades away so
+   the strike reads white first and then settles into its type colour. There is
+   no ring or glow around it. Every duration is scaled by --arrive-scale
+   so the whole sequence still fits inside the strike's life at 4x playback. ---- */
 .strike-arrive .strike-glyph {
-  animation: strike-drop 1.0s cubic-bezier(.22, 1, .36, 1) both,
-             strike-bloom 2.9s ease-out both;
+  animation: strike-drop calc(1s * var(--arrive-scale)) cubic-bezier(.22, 1, .36, 1) both;
 }
-.strike-arrive .strike-glyph::after { animation: strike-flash 2.4s ease-out both; }
-.strike-arrive .strike-ring { animation: strike-shock 2.9s cubic-bezier(.15, .7, .3, 1) both; }
+/* The white-to-colour handover. The glyph's own colour lives inside the SVG
+   file and cannot be animated, so the white is a separate masked layer on top
+   that fades off to reveal the blue or the yellow underneath. Slower than the
+   drop, so the colour arrives after the motion has settled. */
+.strike-arrive .strike-glyph::after {
+  animation: strike-flash calc(1.5s * var(--arrive-scale)) ease-out both;
+}
 
 /* Falls a few pixels into place as it lands — enough to read as downward
-   motion, not so much that it looks like the marker is in the wrong spot. */
+   motion, not so much that it looks like the marker is in the wrong spot.
+   Scaled down with the marker itself. */
 @keyframes strike-drop {
-  0%   { transform: translateY(-5px) scale(1.35); opacity: 0; }
+  0%   { transform: translateY(-3.5px) scale(1.35); opacity: 0; }
   30%  { opacity: 1; }
   55%  { transform: translateY(0) scale(1.06); }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+/* Holds solid white long enough to register as white, then crosses to the type
+   colour rather than cutting. */
 @keyframes strike-flash {
-  0%, 24% { opacity: 1; }
+  0%, 30% { opacity: 1; }
   100%    { opacity: 0; }
 }
-@keyframes strike-shock {
-  0%   { transform: scale(.4); opacity: .95; border-width: 2px; }
-  100% { transform: scale(6); opacity: 0; border-width: .5px; }
-}
-/* Settles onto the same halo the state below holds, so when the class is
-   dropped a still-fresh strike carries straight on unchanged. */
-@keyframes strike-bloom {
-  0%        { filter: drop-shadow(0 0 10px rgba(255, 255, 255, 1)); }
-  28%       { filter: drop-shadow(0 0 8px rgba(255, 255, 255, .9)); }
-  60%, 100% { filter: drop-shadow(0 0 4px var(--halo)); }
-}
 
-/* ---- the state ----
-   Held, unanimated, for as long as a strike is under 5 minutes old, so one that
-   arrived while you were looking elsewhere is still identifiable as recent. The
-   opacity ramp cannot carry this on its own: it sits flat at 100% across the
-   whole 0-5 minute band, which leaves a 10-second-old strike and a 5-minute-old
-   one pixel-identical. See halo-vs-opacity.html. ---- */
-.strike-fresh .strike-glyph { filter: drop-shadow(0 0 4px var(--halo)); }
-
-/* No arrival animation, but the halo still applies — it is state, not motion. */
+/* The white arrival still resolves to the type colour — that is the strike's
+   identity, not decoration — it just gets there without moving. */
 @media (prefers-reduced-motion: reduce) {
-  .strike-arrive .strike-glyph,
-  .strike-arrive .strike-glyph::after,
-  .strike-arrive .strike-ring { animation: none; }
-  .strike-arrive .strike-glyph { transform: none; opacity: 1; }
-  .strike-arrive .strike-glyph::after { opacity: 0; }
-  .strike-arrive .strike-ring { display: none; }
+  .strike-arrive .strike-glyph { animation: none; transform: none; opacity: 1; }
 }
 
 .strike-popup .leaflet-popup-content-wrapper {

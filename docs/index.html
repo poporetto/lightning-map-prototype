@@ -23,12 +23,16 @@
     </div>
 
     <div class="control-row">
-      <span class="control-label">Strike colours</span>
-      <select id="scheme-select">
-        <option value="blue" selected>Orange &amp; blue</option>
-        <option value="purple">Orange &amp; purple</option>
-        <option value="hot">Hot &amp; muted</option>
-      </select>
+      <span class="control-label">Density colours</span>
+      <select id="density-ramp-select"></select>
+    </div>
+
+    <div class="control-row">
+      <span class="control-label">Strike density</span>
+      <label class="switch">
+        <input type="checkbox" id="density-toggle" checked>
+        <span class="switch-track"><span class="switch-thumb"></span></span>
+      </label>
     </div>
 
     <div class="control-row">
@@ -52,20 +56,25 @@
         <span>Cloud&#8209;to&#8209;cloud <em id="count-ic">0</em></span>
       </div>
 
-      <div class="legend-title">Strike age <span class="muted">(fades out after 60&nbsp;min)</span></div>
+      <div class="legend-title">Strike age <span class="muted">(fades out after 30&nbsp;min)</span></div>
       <div class="age-ramp age-ramp-cg">
         <span style="opacity:1"></span>
-        <span style="opacity:.85"></span>
-        <span style="opacity:.65"></span>
+        <span style="opacity:.72"></span>
         <span style="opacity:.45"></span>
+        <span style="opacity:.1"></span>
       </div>
       <div class="age-ramp age-ramp-ic">
         <span style="opacity:1"></span>
-        <span style="opacity:.85"></span>
-        <span style="opacity:.65"></span>
+        <span style="opacity:.72"></span>
         <span style="opacity:.45"></span>
+        <span style="opacity:.1"></span>
       </div>
-      <div class="age-scale"><span>now</span><span>15m</span><span>30m</span><span>60m</span></div>
+      <div class="age-scale"><span>now</span><span>15m</span><span>22m</span><span>30m</span></div>
+
+      <div class="legend-title">Strike density
+        <span class="muted">(last <span id="density-window">60 min</span>)</span></div>
+      <div class="density-ramp" id="density-ramp"></div>
+      <div class="density-scale"><span>fewer strikes</span><span>more</span></div>
     </div>
   </div>
 
@@ -98,6 +107,7 @@
 
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="data.js"></script>
+  <script src="density.js"></script>
   <script src="app.js"></script>
 </body>
 </html>

@@ -7,22 +7,18 @@ const MINUTE = 60 * 1000;
 const WINDOW_MINUTES = LightningData.WINDOW_HOURS * 60;   // 720
 
 /* Opacity by age, measured against the currently selected timeline time rather
-   than wall clock. The spec's four steps are kept as anchor points, but the
-   value is interpolated between them so a strike fades continuously as the
-   timeline moves instead of snapping down in four jumps. Each anchor is still
-   hit exactly at its own boundary: 100% to 5 min, then 85% at 15, 65% at 30,
-   45% at 60, hidden after that. */
+   than wall clock. Strikes fade out completely over 30 minutes. The stops are
+   anchor points and the value is interpolated between them, so a strike fades
+   continuously as the timeline moves instead of snapping down in steps. The
+   last stop is zero rather than a floor: "fades out" should be a fade, not a
+   dim marker that pops out of existence at the boundary. */
 const AGE_STOPS = [
   { min: 5,  opacity: 1.00 },
-  { min: 15, opacity: 0.85 },
-  { min: 30, opacity: 0.65 },
-  { min: 60, opacity: 0.45 }
+  { min: 15, opacity: 0.72 },
+  { min: 22, opacity: 0.45 },
+  { min: 30, opacity: 0.00 }
 ];
 const MAX_AGE_MIN = AGE_STOPS[AGE_STOPS.length - 1].min;
-/* Under this age a strike holds a static halo. It matches the first anchor
-   because that is exactly the span the opacity ramp cannot distinguish — it
-   sits flat at 100% throughout. */
-const FRESH_MIN = AGE_STOPS[0].min;
 
 function ageOpacity(ageMin) {
   if (ageMin < 0 || ageMin >= MAX_AGE_MIN) return null;   // future, or aged out
@@ -38,32 +34,44 @@ function ageOpacity(ageMin) {
   return null;
 }
 
+/* Which animation the arrival ends on. The class is dropped on animationend
+   rather than on a timer, so ageing can never cut the arrival off part-way
+   through. The white-to-colour flash is the longest part of the arrival, and
+   the only one that still runs under reduced motion, so it is the one to wait
+   for in both cases. */
+const ARRIVAL_END_ANIM = 'strike-flash';
+
 /* Playback speeds expressed as minutes-of-data per second of wall clock.
    1x walks the full 12 h in about three minutes. */
 const SPEED_MIN_PER_SEC = 4;
 
-/* Icons are <img> references to the files in strike-icons/, not inlined SVG, so
-   recolouring means swapping the file — hence one SVG per colour. Each palette
-   names the pair it uses. Files are named by strike type and palette; the
-   standalone pack in strike-icons/ carries its own copies. */
-const ICON_DIR = 'icons/';
-const ICON_SETS = {
-  blue:   { cg: 'cloud-to-ground-default.svg', ic: 'cloud-to-cloud-default.svg' },
-  purple: { cg: 'cloud-to-ground-default.svg', ic: 'cloud-to-cloud-purple.svg' },
-  hot:    { cg: 'cloud-to-ground-hot.svg',     ic: 'cloud-to-cloud-hot.svg' }
-};
-let iconSet = ICON_SETS.blue;
+/* The arrival animation runs in wall-clock seconds while the strike's life is
+   measured in timeline minutes, so fast playback would outrun it: at 4x a
+   strike exists for 30 / (4 x 4) = 1.9 s, and the arrival alone is 1.5 s, so
+   every strike would wink out while still white and never reach its colour.
+   Scaling the durations by 1/speed keeps the arrival the same fraction of the
+   strike's visible life at every speed. */
+function applySpeedToArrival() {
+  document.body.style.setProperty('--arrive-scale', String(1 / state.speed));
+}
 
-function iconUrl(type) { return ICON_DIR + iconSet[type]; }
+/* Icons are <img> references to the files in icons/, not inlined SVG, so their
+   colour lives in the file. Strike colours are fixed at orange for
+   cloud-to-ground and blue for cloud-to-cloud; the standalone pack in
+   strike-icons/ carries its own copies. */
+const ICON_DIR = 'icons/';
+const ICONS = { cg: 'cloud-to-ground-default.svg', ic: 'cloud-to-cloud-default.svg' };
+
+function iconUrl(type) { return ICON_DIR + ICONS[type]; }
 
 function glyphHtml(type) {
   return '<span class="strike-glyph"><img src="' + iconUrl(type) + '" alt=""></span>';
 }
-/* The ring sits behind the glyph and expands from the strike point on arrival. */
-const RING_SPAN = '<span class="strike-ring"></span>';
 
-/* Markers are 15x20 — the artwork is 23:31, so this keeps its proportions. */
-const ICON_SIZE = [15, 20];
+/* 30% smaller than the original 15x20, so the density surface underneath stays
+   readable through a dense field of markers. The artwork is 23:31 and these
+   keep that ratio. */
+const ICON_SIZE = [10.5, 14];
 
 /* ---------------- state ---------------- */
 
@@ -82,7 +90,8 @@ const state = {
   selectedMin: OPEN_AT_MIN,      // slider position, minutes from startTime
   playing: false,
   speed: 1,
-  radarOn: true
+  radarOn: true,
+  densityOn: true
 };
 
 const mounted = new Map();       // strike id -> { marker, inner, opacity }
@@ -125,6 +134,10 @@ radarPane.style.pointerEvents = 'none';
 
 const strikeLayer = L.layerGroup().addTo(map);
 labelLayer.addTo(map);
+
+/* The density surface reads the same strike array the markers do, but over its
+   own 60-minute window rather than the markers' 30. */
+const density = LightningDensity.create(map, strikes);
 
 /* ---------------- rain radar ----------------
 
@@ -220,15 +233,14 @@ function lowerBound(t) {
   return lo;
 }
 
-function makeIcon(strike, arrive, fresh) {
+function makeIcon(strike, arrive) {
   const cls = ['strike-marker',
     strike.type === 'cg' ? 'strike-cloud-to-ground' : 'strike-cloud-to-cloud'];
-  if (fresh) cls.push('strike-fresh');
   if (arrive) cls.push('strike-arrive');
   const size = ICON_SIZE;
   return L.divIcon({
     className: 'strike-icon',
-    html: '<div class="' + cls.join(' ') + '">' + (arrive ? RING_SPAN : '') +
+    html: '<div class="' + cls.join(' ') + '">' +
           glyphHtml(strike.type) + '</div>',
     iconSize: size,
     // CG bolts point at the ground, so anchor them at the tip.
@@ -263,7 +275,6 @@ function renderStrikes() {
     const ageMin = (t - s.time) / MINUTE;
     const opacity = ageOpacity(ageMin);
     if (opacity === null) continue;
-    const fresh = ageMin <= FRESH_MIN;
 
     seen.add(s.id);
     if (s.type === 'cg') cg++; else ic++;
@@ -276,33 +287,24 @@ function renderStrikes() {
       const arrive = !jumped && s.time > lastRenderTime;
 
       const marker = L.marker([s.lat, s.lon], {
-        icon: makeIcon(s, arrive, fresh),
+        icon: makeIcon(s, arrive),
         keyboard: false,
         riseOnHover: true,
         interactive: true
       });
-      marker.bindPopup(popupHtml(s), { className: 'strike-popup', closeButton: false, offset: [0, -8] });
+      marker.bindPopup(popupHtml(s), { className: 'strike-popup', closeButton: false, offset: [0, -6] });
       marker.addTo(strikeLayer);
 
-      // The arrival ends on the same halo the fresh state holds, so dropping
-      // the class hands over invisibly. It drops its own class on animationend
-      // so ageing can never cut the animation off part-way through.
       if (arrive) {
         const el = marker.getElement();
         const inner = el && el.firstElementChild;
         if (inner) inner.addEventListener('animationend', ev => {
-          if (ev.animationName === 'strike-bloom') inner.classList.remove('strike-arrive');
+          if (ev.animationName === ARRIVAL_END_ANIM) inner.classList.remove('strike-arrive');
         });
       }
 
-      entry = { marker, opacity: -1, fresh };
+      entry = { marker, opacity: -1 };
       mounted.set(s.id, entry);
-    } else if (entry.fresh !== fresh) {
-      const inner = entry.marker.getElement() && entry.marker.getElement().firstElementChild;
-      if (inner) {
-        inner.classList.toggle('strike-fresh', fresh);
-        entry.fresh = fresh;
-      }
     }
 
     if (entry.opacity !== opacity) {
@@ -352,6 +354,7 @@ function update() {
   pill.textContent = fmtPill(new Date(selectedTime()));
   renderStrikes();
   applyRadar();
+  density.update(selectedTime());
 }
 
 slider.addEventListener('input', () => {
@@ -364,25 +367,28 @@ playBtn.addEventListener('click', () => setPlaying(!state.playing));
 
 document.getElementById('speed-select').addEventListener('change', e => {
   state.speed = Number(e.target.value);
+  applySpeedToArrival();
 });
 
-document.getElementById('scheme-select').addEventListener('change', e => {
-  const next = e.target.value;
-  document.body.dataset.scheme = next;          // rims and halos are CSS vars
-  iconSet = ICON_SETS[next] || ICON_SETS.blue;
-
-  // The glyph itself is an <img>, so its colour lives in the file rather than in
-  // CSS. Repoint every icon already on the page; the files are cached after the
-  // first hit, so this costs no extra requests.
-  document.querySelectorAll('.strike-cloud-to-ground .strike-glyph img, .legend-icon .cg-icon')
-    .forEach(img => img.src = iconUrl('cg'));
-  document.querySelectorAll('.strike-cloud-to-cloud .strike-glyph img, .legend-icon .ic-icon')
-    .forEach(img => img.src = iconUrl('ic'));
+/* Density colour ramps, offered side by side for comparison. All four are
+   solved to the same luminance steps, so they differ in hue only. */
+const densityRampSelect = document.getElementById('density-ramp-select');
+densityRampSelect.innerHTML = Object.entries(LightningDensity.RAMPS).map(([key, r]) =>
+  '<option value="' + key + '"' + (key === LightningDensity.DEFAULT_RAMP ? ' selected' : '') + '>' +
+  r.label + '</option>').join('');
+densityRampSelect.addEventListener('change', e => {
+  density.setRamp(e.target.value);
+  buildDensityLegend();
 });
 
 document.getElementById('radar-toggle').addEventListener('change', e => {
   state.radarOn = e.target.checked;
   applyRadar();
+});
+
+document.getElementById('density-toggle').addEventListener('change', e => {
+  state.densityOn = e.target.checked;
+  density.setEnabled(state.densityOn);
 });
 
 document.getElementById('basemap-toggle').addEventListener('click', e => {
@@ -454,12 +460,24 @@ document.addEventListener('visibilitychange', () => {
 
 /* ---------------- boot ---------------- */
 
-// Legend swatches point at the same files as the markers, so they follow the
-// palette automatically.
+/* The legend gradient is generated from the same ramp the canvas paints from,
+   so the two can never drift apart. */
+function buildDensityLegend() {
+  const el = document.getElementById('density-ramp');
+  if (!el) return;
+  el.style.background = LightningDensity.cssGradient(densityRampSelect.value);
+  const win = document.getElementById('density-window');
+  if (win) win.textContent = LightningDensity.WINDOW_MIN + ' min';
+}
+
+// Legend swatches point at the same files as the markers.
 document.getElementById('legend-cg').innerHTML = '<img class="cg-icon" src="' + iconUrl('cg') + '" alt="">';
 document.getElementById('legend-ic').innerHTML = '<img class="ic-icon" src="' + iconUrl('ic') + '" alt="">';
 
+applySpeedToArrival();
+buildDensityLegend();
 update();
+density.update(selectedTime(), true);
 loadRadar();
 // Autoplay from the start of the window. rAF is throttled while the tab is in
 // the background, so this picks up properly whenever the page becomes visible.
