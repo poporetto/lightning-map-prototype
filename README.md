@@ -285,12 +285,18 @@ the canvas is not tainted. If RainViewer changes its colours, unmatched pixels a
 left clear rather than guessed, so the failure mode is missing rain, not wrong
 rain. The legend's radar scale is built from the same band list.
 
-**Known gap:** free radar history is roughly the last 2 hours at ~10-minute
-spacing, which is much shorter than the 12-hour strike timeline. The radar
-follows the slider inside the window it has frames for, and holds on the oldest
-available frame before that. The control panel states which frames are loaded so
-the mismatch is visible rather than silently faked. Full 12-hour radar history
-would need an archive feed.
+**The radar loops.** Free radar history is only the last ~2 hours of real time,
+at 10-minute spacing, while the strike timeline is pinned to 08:00–20:00. Matching
+frames to timeline times meant the two barely overlapped — opened at 23:17, every
+point of the timeline picked the same oldest frame and the radar never moved at
+all. Since the strikes are mock data and were never the same storm as the rain,
+there is nothing real to keep in sync. So the timeline instead steps through the
+real frames in order, one per 10 timeline-minutes — the frames' own spacing, so
+the rain moves at its true speed relative to the playhead — and wraps round to
+the oldest when it runs out. A given slider position always lands on the same
+frame, so scrubbing is repeatable. The panel names the frame being shown (e.g.
+"now showing 22:20") so the loop is visible rather than passed off as the
+timeline's own time. Real 12-hour radar history would need an archive feed.
 
 ## Mock data
 

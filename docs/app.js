@@ -271,13 +271,13 @@ async function loadRadar() {
     }));
     if (!radarFrames.length) throw new Error('no frames');
 
-    const oldest = new Date(radarFrames[0].time);
     radarStatusEl.classList.remove('is-error');
     radarStatusEl.innerHTML =
-      RADAR_SOURCE.name + ' &middot; ' + radarFrames.length + ' frames back to ' +
-      fmtTime(oldest) + '.<br>Not BOM &mdash; BOM\u2019s own tiles need an API key. ' +
-      'Radar history is shorter than the 12&#8239;h strike timeline, so it holds ' +
-      'on the oldest frame before then.';
+      RADAR_SOURCE.name + ' &middot; looping the last ' + radarFrames.length +
+      ' real frames (' + fmtTime(new Date(radarFrames[0].time)) + '&ndash;' +
+      fmtTime(new Date(radarFrames[radarFrames.length - 1].time)) + '), now showing ' +
+      '<b id="radar-frame-time">&mdash;</b>.<br>Not BOM data &mdash; BOM\u2019s own ' +
+      'tiles need an API key. Not the same storm as the mock strikes.';
     applyRadar();
   } catch (err) {
     radarFrames = [];
@@ -286,23 +286,40 @@ async function loadRadar() {
   }
 }
 
-/* Picks the radar frame nearest the selected time and swaps the tile layer
-   only when the frame actually changes. */
+/* The radar LOOPS rather than following the clock. Free radar history is only
+   the last ~2 hours of real time, while the strike timeline is pinned to
+   08:00-20:00, so matching frames to timeline times meant the two barely
+   overlapped: opened at 23:17, every point of the timeline picked the same
+   oldest frame and the radar never moved. The strikes are mock data and were
+   never the same storm as the rain, so there is nothing real to keep in sync.
+   Instead the timeline steps through the real frames in order, one per
+   RADAR_STEP_MIN of timeline - the same 10-minute spacing the frames have, so
+   the rain moves at its true speed relative to the playhead - and wraps round
+   to the oldest when it runs out. Scrubbing lands on a fixed frame for a given
+   time, so it is repeatable. */
+const RADAR_STEP_MIN = 10;
+let radarRetry = null;
+
 function applyRadar() {
   if (!state.radarOn || !radarFrames.length) {
     if (radarLayer) { map.removeLayer(radarLayer); radarLayer = null; radarFrameIndex = -1; }
     return;
   }
-  const t = selectedTime();
-  let best = 0;
-  for (let i = 1; i < radarFrames.length; i++) {
-    if (Math.abs(radarFrames[i].time - t) < Math.abs(radarFrames[best].time - t)) best = i;
-  }
+  const best = Math.floor(state.selectedMin / RADAR_STEP_MIN) % radarFrames.length;
   if (best === radarFrameIndex && radarLayer) return;
   const now = performance.now();
-  if (radarLayer && now - lastRadarSwap < RADAR_SWAP_MIN_MS) return;
+  if (radarLayer && now - lastRadarSwap < RADAR_SWAP_MIN_MS) {
+    // Swaps are rate-limited so fast playback does not refetch constantly.
+    // Retry once the limit clears, or a scrub that stops inside the window
+    // would be left showing the previous frame.
+    if (!radarRetry) radarRetry = setTimeout(() => { radarRetry = null; applyRadar(); },
+      RADAR_SWAP_MIN_MS - (now - lastRadarSwap) + 10);
+    return;
+  }
   lastRadarSwap = now;
   radarFrameIndex = best;
+  const label = document.getElementById('radar-frame-time');
+  if (label) label.textContent = fmtTime(new Date(radarFrames[best].time));
 
   const next = new BomRadarLayer(radarFrames[best].url, {
     pane: 'radarPane', maxZoom: 19, maxNativeZoom: 10, tileSize: 512, zoomOffset: -1,
