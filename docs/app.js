@@ -91,7 +91,8 @@ const state = {
   playing: false,
   speed: 1,
   radarOn: true,
-  densityOn: true
+  densityOn: true,
+  patternOn: true
 };
 
 const mounted = new Map();       // strike id -> { marker, inner, opacity }
@@ -386,9 +387,18 @@ document.getElementById('radar-toggle').addEventListener('change', e => {
   applyRadar();
 });
 
+const patternToggle = document.getElementById('pattern-toggle');
+patternToggle.addEventListener('change', e => {
+  state.patternOn = e.target.checked;
+  density.setPattern(state.patternOn);
+});
+
 document.getElementById('density-toggle').addEventListener('change', e => {
   state.densityOn = e.target.checked;
   density.setEnabled(state.densityOn);
+  // The pattern only exists on the surface, so its switch goes inert with it.
+  patternToggle.disabled = !state.densityOn;
+  patternToggle.closest('.control-row').classList.toggle('is-disabled', !state.densityOn);
 });
 
 document.getElementById('basemap-toggle').addEventListener('click', e => {

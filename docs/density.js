@@ -252,6 +252,7 @@
     let pattern = null;
 
     let enabled = true;
+    let patternOn = true;
     let size = null, padded = null, dpr = 1;
     let lastTime = null, lastDrawAt = 0, pendingTime = null, trailing = null;
 
@@ -381,7 +382,7 @@
       ctx.imageSmoothingQuality = 'high';
       ctx.drawImage(field, dx, dy, dw, dh);
 
-      if (!pattern) return;
+      if (!pattern || !patternOn) return;
       /* Pattern anchored to world pixels, so the lattice rides with the map. */
       const tw = BOLT_STEP_X, th = BOLT_STEP_Y * 2;
       const ax = -(((offX % tw) + tw) % tw), ay = -(((offY % th) + th) % th);
@@ -434,6 +435,11 @@
         enabled = on;
         canvas.style.display = on ? '' : 'none';
         if (on) redraw();
+      },
+      /* The bolt pattern alone; the colour surface stays. */
+      setPattern(on) {
+        patternOn = on;
+        redraw();
       },
       setRamp(name) {
         if (!RAMPS[name]) return;

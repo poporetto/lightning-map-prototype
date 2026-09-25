@@ -67,6 +67,10 @@ html, body {
   gap: 10px; margin-bottom: 10px; min-height: 28px;
 }
 .control-label { color: var(--muted); font-size: 12.5px; }
+/* A setting that belongs to the row above it, indented to show that. */
+.control-sub .control-label { padding-left: 12px; }
+.control-row.is-disabled { opacity: .45; }
+.control-row.is-disabled .switch { cursor: default; }
 
 .segmented {
   display: inline-flex; background: rgba(255, 255, 255, .06);

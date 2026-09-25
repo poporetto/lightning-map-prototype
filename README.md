@@ -85,6 +85,8 @@ it fades in at the edge of the surface with the colour and grows firmer toward
 the core (15% up to 31% opacity), so the texture thickens where the strikes do.
 The bolts are a near-white tint of the ramp's hue and carry no dark edge, which
 keeps them from being mistaken for the 10.5 × 14 strike markers above them.
+**Bolt pattern** in the panel turns the pattern off and leaves the colour
+surface; it goes inert while the density surface itself is off.
 
 Five decisions here were made against measurements rather than by eye, because
 the obvious version of each is wrong:
