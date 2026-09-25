@@ -32,6 +32,12 @@ Everything lives in `docs/` so GitHub Pages can serve it directly — set
 `/docs`. There is no build step; the files in `docs/` are the source. `.nojekyll`
 stops Pages running the files through Jekyll.
 
+Pages serves everything with a 10-minute browser cache, so `index.html` loads
+its local CSS and scripts as `file?v=N`. **Bump `N` on any deploy that changes
+them** — otherwise a returning visitor can get the new HTML with the old
+scripts, and a control added in the HTML calls a function the cached script
+does not have yet.
+
 ## Strike rendering
 
 Two strike types, drawn with the Font Awesome **bolt** path inlined as SVG so
