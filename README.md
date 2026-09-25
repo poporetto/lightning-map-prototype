@@ -254,6 +254,37 @@ const RADAR_SOURCE = { name: '…', index: 'https://api.rainviewer.com/public/we
 Anything that can produce `{ frames: [{ time, url }] }` drops straight in — a
 BOM API key and its MapServer tile URL included, if you can obtain one.
 
+### BOM colours
+
+The radar is painted in **BOM's rain-rate scale** — the one BOM and WillyWeather
+use: near-white for the lightest rain through lavender, blue, teal, yellow and
+orange to deep red and maroon, in 15 bands from 0.2 to 300 mm/h. Only the colours
+are BOM's; the data is still RainViewer's.
+
+RainViewer cannot serve these colours. Its free API now **ignores the colour
+scheme in the tile URL** and always returns "Universal Blue" — tiles requested as
+scheme 0 and scheme 2 came back byte-identical. So `app.js` decodes each tile in
+the browser instead:
+
+1. Tiles are fetched unsmoothed with snow off (`/2/0_0.png`). Smoothing blends
+   neighbouring colours into shades that are in no table and cannot be decoded;
+   snow would switch some pixels onto a separate colour scale.
+2. Universal Blue gives every dBZ level its own colour, so each opaque pixel is
+   matched back to its dBZ through RainViewer's published colour table.
+3. Below 15 dBZ Universal Blue is translucent grey, and those pixels cannot be
+   matched by colour: reading a semi-transparent pixel back from a canvas rounds
+   its RGB through premultiplied alpha. Their alpha survives exactly and steps
+   by 10 per dBZ, so they are decoded by alpha instead.
+4. The dBZ is converted to a BOM band using Marshall-Palmer (Z = 200 R^1.6).
+   Anything under 0.2 mm/h (~12 dBZ) is left clear, as BOM does — which also
+   drops the faint grey drizzle haze RainViewer paints.
+
+Checked against seven live tiles over NSW: every pixel decoded, none unknown.
+Tiles are cross-origin but RainViewer sends `Access-Control-Allow-Origin: *`, so
+the canvas is not tainted. If RainViewer changes its colours, unmatched pixels are
+left clear rather than guessed, so the failure mode is missing rain, not wrong
+rain. The legend's radar scale is built from the same band list.
+
 **Known gap:** free radar history is roughly the last 2 hours at ~10-minute
 spacing, which is much shorter than the 12-hour strike timeline. The radar
 follows the slider inside the window it has frames for, and holds on the oldest

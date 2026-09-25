@@ -150,9 +150,104 @@ const density = LightningDensity.create(map, strikes);
 ------------------------------------------------------------------------- */
 
 const RADAR_SOURCE = {
-  name: 'RainViewer composite',
+  name: 'RainViewer composite in BOM colours',
   index: 'https://api.rainviewer.com/public/weather-maps.json'
 };
+
+/* ---- BOM colours ----
+   The radar is repainted in the Bureau's own rain-rate scale, the one BOM and
+   WillyWeather use: near-white for the lightest rain through lavender, blue,
+   teal, yellow and orange to deep red and maroon for the heaviest.
+
+   RainViewer cannot supply this directly. Its free API now ignores the colour
+   scheme in the tile URL and always serves "Universal Blue" (tiles requested as
+   scheme 0 and scheme 2 came back byte-identical). So each tile is decoded
+   instead: Universal Blue gives every dBZ level its own colour, so a pixel's
+   colour maps back to exactly one reflectivity, which is then repainted with
+   the BOM colour for that rain rate.
+
+   Each BOM band starts at a rain rate in mm/h; the dBZ it starts at comes from
+   Marshall-Palmer, Z = 200 R^1.6, the standard reflectivity-to-rain relation.
+   Anything under 0.2 mm/h (~12 dBZ) is left clear, as BOM does, which also
+   drops the translucent grey drizzle haze Universal Blue paints at low dBZ. */
+const BOM_BANDS = [
+  // [mm/h, colour]
+  [0.2, '#f5f5ff'], [0.5, '#b4b4ff'], [1.5, '#7878ff'], [2.5, '#1414ff'],
+  [4,   '#00d8c3'], [6,   '#009690'], [10,  '#006666'], [15,  '#ffff00'],
+  [20,  '#ffc800'], [35,  '#ff9600'], [50,  '#ff6400'], [80,  '#ff0000'],
+  [120, '#c80000'], [200, '#780000'], [300, '#280000']
+].map(([mmh, hex]) => ({
+  dbz: 10 * Math.log10(200 * Math.pow(mmh, 1.6)),
+  rgb: [1, 3, 5].map(i => parseInt(hex.substr(i, 2), 16))
+}));
+
+/* Universal Blue's colours for 12..95 dBZ, one per step, from RainViewer's
+   published colour table. Above 64 dBZ it repeats white and then green; all of
+   that is past BOM's top band, so each repeat decodes to its first dBZ and still
+   lands in the heaviest colour. */
+const UB_FROM_DBZ = 12;
+const UB_COLOURS = ('d6c88f dacc93 ded097 88ddee 6cd1eb 51c5e8 36bae5 1baee2 00a3e0 ' +
+  '009ad5 0091ca 0088bf 007fb4 0077aa 0070a3 00699c 006295 005b8e 005588 005180 ' +
+  '004e78 004a70 004768 ffee00 ffe000 ffd200 ffc500 ffb700 ffaa00 ff9f00 ff9500 ' +
+  'ff8b00 ff8100 ff4400 f23600 e62800 d91b00 cd0d00 c10000 a80000 8f0000 760000 ' +
+  '5d0000 ffaaff ff9fff ff95ff ff8bff ff81ff ff77ff ff6cff ff62ff ff58ff ff4eff ' +
+  'ffffff 00ff00').split(' ');
+
+/* Below 15 dBZ Universal Blue is translucent grey, stepping alpha by 10 per
+   dBZ up to 190 at 14 dBZ. Those pixels cannot be matched by colour: reading a
+   semi-transparent pixel back from a canvas rounds its RGB through premultiplied
+   alpha (#aa9e79 at alpha 120 comes back as #aa9d79). Alpha itself survives
+   exactly, so they are decoded by it instead - 12 dBZ, the first at or above
+   BOM's 0.2 mm/h floor, is alpha 170. Anything fainter stays clear. */
+const UB_TRANSLUCENT_MIN_ALPHA = 170;
+
+/* Packed source RGB -> BOM band index (-1 = leave clear), for opaque pixels. */
+const RADAR_LUT = new Map();
+UB_COLOURS.forEach((hex, i) => {
+  const key = parseInt(hex, 16);
+  if (RADAR_LUT.has(key)) return;
+  const dbz = UB_FROM_DBZ + i;
+  let band = -1;
+  for (let b = 0; b < BOM_BANDS.length; b++) if (dbz >= BOM_BANDS[b].dbz) band = b;
+  RADAR_LUT.set(key, band);
+});
+
+/* A tile layer that fetches Universal Blue tiles and hands back the same tile
+   repainted in BOM colours. Tiles are requested unsmoothed: smoothing blends
+   neighbouring colours into shades that are in no table and cannot be decoded,
+   and BOM's own radar is drawn blocky anyway. A colour not in the table (none
+   was seen, but the service could change) is left clear rather than guessed. */
+const BomRadarLayer = L.TileLayer.extend({
+  createTile(coords, done) {
+    const canvas = document.createElement('canvas');
+    const size = this.getTileSize();
+    canvas.width = size.x;
+    canvas.height = size.y;
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      ctx.drawImage(img, 0, 0, size.x, size.y);
+      const frame = ctx.getImageData(0, 0, size.x, size.y);
+      const d = frame.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const a = d[i + 3];
+        if (a === 0) continue;
+        const band = a < 255
+          ? (a >= UB_TRANSLUCENT_MIN_ALPHA ? 0 : -1)
+          : RADAR_LUT.get((d[i] << 16) | (d[i + 1] << 8) | d[i + 2]);
+        if (band === undefined || band < 0) { d[i + 3] = 0; continue; }
+        const c = BOM_BANDS[band].rgb;
+        d[i] = c[0]; d[i + 1] = c[1]; d[i + 2] = c[2]; d[i + 3] = 255;
+      }
+      ctx.putImageData(frame, 0, 0);
+      done(null, canvas);
+    };
+    img.onerror = err => done(err, canvas);
+    img.src = this.getTileUrl(coords);
+    return canvas;
+  }
+});
 
 let radarFrames = [];        // [{ time (ms), url }]
 let radarLayer = null;
@@ -170,8 +265,9 @@ async function loadRadar() {
     const past = (data.radar && data.radar.past) || [];
     radarFrames = past.map(f => ({
       time: f.time * 1000,
-      // {size}/{z}/{x}/{y}/{colorScheme}/{smooth}_{snow}.png
-      url: host + f.path + '/512/{z}/{x}/{y}/2/1_1.png'
+      // {size}/{z}/{x}/{y}/{colorScheme}/{smooth}_{snow}.png — Universal Blue,
+      // unsmoothed, and snow off so every pixel is on the rain scale.
+      url: host + f.path + '/512/{z}/{x}/{y}/2/0_0.png'
     }));
     if (!radarFrames.length) throw new Error('no frames');
 
@@ -208,7 +304,7 @@ function applyRadar() {
   lastRadarSwap = now;
   radarFrameIndex = best;
 
-  const next = L.tileLayer(radarFrames[best].url, {
+  const next = new BomRadarLayer(radarFrames[best].url, {
     pane: 'radarPane', maxZoom: 19, maxNativeZoom: 10, tileSize: 512, zoomOffset: -1,
     attribution: 'Radar &copy; RainViewer'
   });
@@ -479,6 +575,10 @@ function buildDensityLegend() {
   const win = document.getElementById('density-window');
   if (win) win.textContent = LightningDensity.WINDOW_MIN + ' min';
 }
+
+// The radar scale is built from the same bands the tiles are repainted with.
+document.getElementById('radar-ramp').innerHTML = BOM_BANDS.map(b =>
+  '<span style="background: rgb(' + b.rgb.join(',') + ')"></span>').join('');
 
 // Legend swatches point at the same files as the markers.
 document.getElementById('legend-cg').innerHTML = '<img class="cg-icon" src="' + iconUrl('cg') + '" alt="">';
