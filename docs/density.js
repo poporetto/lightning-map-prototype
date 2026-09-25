@@ -230,9 +230,10 @@
 
   function create(map, strikes) {
     const pane = map.createPane('densityPane');
-    /* Above the radar (350) and the default overlay pane (400), below the
-       place-name labels (shadowPane, 500) and the markers (600). */
-    pane.style.zIndex = 450;
+    /* Above the basemap (tilePane, 200) and below the rain radar (350), so
+       rain is drawn over the density rather than hidden under it. Labels
+       (shadowPane, 500) and markers (600) stay on top of both. */
+    pane.style.zIndex = 300;
     pane.style.pointerEvents = 'none';
 
     const canvas = L.DomUtil.create('canvas', 'density-canvas', pane);
